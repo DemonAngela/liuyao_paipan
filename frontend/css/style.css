@@ -309,7 +309,7 @@ button:disabled {
 /* 表格样式 */
 .yao-table {
     width: 100%;
-    min-width: 820px;
+    min-width: 900px;
     table-layout: fixed;
     border-collapse: collapse;
     background: white;
@@ -420,19 +420,26 @@ button:disabled {
     .ganzhi-info { font-size: 0.8rem; padding: 5px 10px; }
 }
 
-/* 五列表格：状态与动化直接归入本卦、变卦 */
-.yao-table th:nth-child(1) { width: 7%; }
-.yao-table th:nth-child(2) { width: 9%; }
-.yao-table th:nth-child(3) { width: 14%; }
+/* 六列表格：恢复独立状态列，动化关系仍紧贴变卦 */
+.yao-table th:nth-child(1) { width: 6%; }
+.yao-table th:nth-child(2) { width: 8%; }
+.yao-table th:nth-child(3) { width: 12%; }
 .yao-table th:nth-child(4),
-.yao-table th:nth-child(5) { width: 35%; }
+.yao-table th:nth-child(6) { width: 27%; }
+.yao-table th:nth-child(5) { width: 20%; }
 
 .yao-table th:nth-child(4),
-.yao-table th:nth-child(5),
+.yao-table th:nth-child(6),
 .yao-table td:nth-child(4),
-.yao-table td:nth-child(5) {
+.yao-table td:nth-child(6) {
     text-align: center;
-    min-width: 250px;
+    min-width: 220px;
+    white-space: normal;
+}
+
+.yao-table th:nth-child(5),
+.yao-table td:nth-child(5) {
+    min-width: 160px;
     white-space: normal;
 }
 
@@ -562,6 +569,10 @@ button:disabled {
     justify-content: center;
     flex-wrap: wrap;
     gap: 2px 9px;
+}
+
+.yao-status-cell .status-lines {
+    margin-top: 0;
 }
 
 .status-meta,

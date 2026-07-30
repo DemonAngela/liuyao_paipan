@@ -219,7 +219,7 @@ async function renderPaipan(data) {
         tdFushen.appendChild(fushenMain);
         tr.appendChild(tdFushen);
 
-        // 4. 本卦：卦爻、世应动空与日月状态聚合展示
+        // 4. 本卦
         const tdBen = document.createElement('td');
         tdBen.className = 'gua-cell ben-gua-cell';
         tdBen.dataset.roleCell = 'ben';
@@ -232,14 +232,19 @@ async function renderPaipan(data) {
         benText.textContent = `${yao.liuqin} ${benDizhiFull} ${benYaoSymbol}`;
         benMain.appendChild(benText);
         tdBen.appendChild(benMain);
-        renderYaoStatus(tdBen, yao, isShi, isYing);
         tdBen.addEventListener('mouseenter', (e) => {
             handleCellHover(e, data.ben_gua_name, pos);
         });
         tdBen.addEventListener('mouseleave', hideTooltip);
         tr.appendChild(tdBen);
 
-        // 5. 变卦：变爻日月状态与动化关系就地展示
+        // 5. 状态：世应、动空与日月关系统一展示
+        const tdStatus = document.createElement('td');
+        tdStatus.className = 'yao-status-cell';
+        renderYaoStatus(tdStatus, yao, isShi, isYing);
+        tr.appendChild(tdStatus);
+
+        // 6. 变卦：变爻日月状态与动化关系就地展示
         const tdBian = document.createElement('td');
         tdBian.className = 'gua-cell bian-gua-cell';
         if (yao.biangua_info) {
