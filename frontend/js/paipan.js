@@ -1,6 +1,7 @@
 let currentPaipanData = null;
 let currentYongShen = null;
 let tooltipTimer = null;
+let ruleTraceFlashTimer = null;
 const tooltip = document.getElementById('yaoci-tooltip');
 
 const DIZHI_WUXING_MAP = {
@@ -55,6 +56,8 @@ function normalizedStatusLabels(labels, prefix) {
 }
 
 function appendStatusRow(container, prefix, labels) {
+    const normalized = normalizedStatusLabels(labels, prefix);
+    if (!normalized.length) return false;
     const row = document.createElement('div');
     row.className = 'status-row';
     const source = document.createElement('span');
@@ -62,8 +65,6 @@ function appendStatusRow(container, prefix, labels) {
     source.textContent = prefix;
     const values = document.createElement('span');
     values.className = 'status-values';
-    const normalized = normalizedStatusLabels(labels, prefix);
-    if (!normalized.length) normalized.push('—');
     normalized.forEach(label => {
         const token = document.createElement('span');
         token.className = `status-token ${statusTone(label)}`.trim();
@@ -72,6 +73,7 @@ function appendStatusRow(container, prefix, labels) {
     });
     row.append(source, values);
     container.appendChild(row);
+    return true;
 }
 
 function renderYaoStatus(cell, yao, isShi, isYing) {
@@ -102,7 +104,7 @@ function renderYaoStatus(cell, yao, isShi, isYing) {
         : legacyStatusRelations(yao, '月');
     appendStatusRow(container, '日', dayRelations);
     appendStatusRow(container, '月', monthRelations);
-    cell.appendChild(container);
+    if (container.childElementCount) cell.appendChild(container);
 }
 
 function transformationTone(label) {
@@ -125,7 +127,7 @@ function renderTransformationTags(cell, yao) {
     ) {
         labels = [...labels, '化空'];
     }
-    if (!labels.length) return;
+    if (!labels.length) return false;
     const tags = document.createElement('div');
     tags.className = 'transform-tags';
     labels.forEach(label => {
@@ -135,6 +137,7 @@ function renderTransformationTags(cell, yao) {
         tags.appendChild(tag);
     });
     cell.appendChild(tags);
+    return true;
 }
 
 async function renderPaipan(data) {
@@ -244,7 +247,7 @@ async function renderPaipan(data) {
         renderYaoStatus(tdStatus, yao, isShi, isYing);
         tr.appendChild(tdStatus);
 
-        // 6. 变卦：变爻日月状态与动化关系就地展示
+        // 6. 变卦：变爻及其日月状态
         const tdBian = document.createElement('td');
         tdBian.className = 'gua-cell bian-gua-cell';
         if (yao.biangua_info) {
@@ -269,8 +272,9 @@ async function renderPaipan(data) {
                     '月',
                     bianInfo.month_relations || []
                 );
-                tdBian.appendChild(bianFacts);
-                renderTransformationTags(tdBian, yao);
+                if (bianFacts.childElementCount) {
+                    tdBian.appendChild(bianFacts);
+                }
             }
         } else {
             tdBian.innerText = '—';
@@ -282,6 +286,14 @@ async function renderPaipan(data) {
             tdBian.addEventListener('mouseleave', hideTooltip);
         }
         tr.appendChild(tdBian);
+
+        // 7. 关系：动化关系独立展示，避免挤压变卦
+        const tdRelation = document.createElement('td');
+        tdRelation.className = 'transformation-cell';
+        if (!renderTransformationTags(tdRelation, yao)) {
+            tdRelation.textContent = '—';
+        }
+        tr.appendChild(tdRelation);
 
         tbody.appendChild(tr);
     });
@@ -460,6 +472,57 @@ function appendAnalysisEmpty(container, text) {
     container.appendChild(empty);
 }
 
+function ruleTraceDomId(ruleId) {
+    const safeId = String(ruleId).replace(/[^A-Za-z0-9_-]/g, '-');
+    return `rule-trace-${safeId}`;
+}
+
+function revealRuleTrace(ruleId) {
+    const target = document.getElementById(ruleTraceDomId(ruleId));
+    if (!target) return;
+    const panel = document.getElementById('rule-trace-panel');
+    if (panel) panel.open = true;
+
+    document.querySelectorAll('.rule-trace-flash').forEach(item => {
+        item.classList.remove('rule-trace-flash');
+    });
+    if (ruleTraceFlashTimer) window.clearTimeout(ruleTraceFlashTimer);
+    void target.offsetWidth;
+    target.classList.add('rule-trace-flash');
+    ruleTraceFlashTimer = window.setTimeout(() => {
+        target.classList.remove('rule-trace-flash');
+        ruleTraceFlashTimer = null;
+    }, 1400);
+
+    window.requestAnimationFrame(() => {
+        target.focus({preventScroll: true});
+        target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                ? 'auto'
+                : 'smooth',
+            block: 'center'
+        });
+    });
+}
+
+function appendRuleLinks(container, prefix, ruleIds) {
+    container.textContent = '';
+    container.appendChild(document.createTextNode(prefix));
+    (ruleIds || []).forEach((ruleId, index) => {
+        if (index) container.appendChild(document.createTextNode('、'));
+        const link = document.createElement('a');
+        link.className = 'rule-ref-link';
+        link.href = `#${ruleTraceDomId(ruleId)}`;
+        link.textContent = ruleId;
+        link.setAttribute('aria-label', `查看断卦规则依据 ${ruleId}`);
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            revealRuleTrace(ruleId);
+        });
+        container.appendChild(link);
+    });
+}
+
 function renderFindingList(containerId, findings, emptyText) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -481,7 +544,7 @@ function renderFindingList(containerId, findings, emptyText) {
         if (finding.rule_ids?.length) {
             const rules = document.createElement('div');
             rules.className = 'analysis-entry-rules';
-            rules.textContent = `依据：${finding.rule_ids.join('、')}`;
+            appendRuleLinks(rules, '依据：', finding.rule_ids);
             entry.appendChild(rules);
         }
         container.appendChild(entry);
@@ -574,7 +637,7 @@ function renderTimingHints(hints) {
         if (hint.rule_ids?.length) {
             const rules = document.createElement('div');
             rules.className = 'analysis-entry-rules';
-            rules.textContent = `依据：${hint.rule_ids.join('、')}`;
+            appendRuleLinks(rules, '依据：', hint.rule_ids);
             entry.appendChild(rules);
         }
         container.appendChild(entry);
@@ -588,6 +651,8 @@ function renderRuleTraces(traces) {
     (traces || []).forEach(trace => {
         const item = document.createElement('article');
         item.className = 'rule-trace-item';
+        item.id = ruleTraceDomId(trace.rule_id);
+        item.tabIndex = -1;
         const title = document.createElement('div');
         title.className = 'rule-trace-title';
         const ruleId = document.createElement('span');
@@ -637,7 +702,7 @@ function renderYongshenProfile(data) {
     }
     if (summary) summary.textContent = profile.summary;
     if (basis) {
-        basis.textContent = `取用依据：${(profile.rule_ids || []).join('、')}`;
+        appendRuleLinks(basis, '取用依据：', profile.rule_ids || []);
         basis.hidden = !profile.rule_ids?.length;
     }
     renderRoleCards(profile);
@@ -742,6 +807,9 @@ function applyYongshenHighlight(data) {
         );
         target.prepend(marker);
         row.classList.add('has-role-marker');
+        if (role.role === '用神') {
+            row.classList.add('yongshen-highlight');
+        }
     };
 
     if (profile) {

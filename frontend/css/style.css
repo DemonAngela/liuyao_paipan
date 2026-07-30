@@ -309,7 +309,7 @@ button:disabled {
 /* 表格样式 */
 .yao-table {
     width: 100%;
-    min-width: 900px;
+    min-width: 1000px;
     table-layout: fixed;
     border-collapse: collapse;
     background: white;
@@ -420,26 +420,33 @@ button:disabled {
     .ganzhi-info { font-size: 0.8rem; padding: 5px 10px; }
 }
 
-/* 六列表格：恢复独立状态列，动化关系仍紧贴变卦 */
+/* 七列表格：恢复独立状态与关系列 */
 .yao-table th:nth-child(1) { width: 6%; }
 .yao-table th:nth-child(2) { width: 8%; }
 .yao-table th:nth-child(3) { width: 12%; }
-.yao-table th:nth-child(4),
-.yao-table th:nth-child(6) { width: 27%; }
-.yao-table th:nth-child(5) { width: 20%; }
+.yao-table th:nth-child(4) { width: 24%; }
+.yao-table th:nth-child(5) { width: 16%; }
+.yao-table th:nth-child(6) { width: 24%; }
+.yao-table th:nth-child(7) { width: 10%; }
 
 .yao-table th:nth-child(4),
 .yao-table th:nth-child(6),
 .yao-table td:nth-child(4),
 .yao-table td:nth-child(6) {
     text-align: center;
-    min-width: 220px;
+    min-width: 210px;
     white-space: normal;
 }
 
 .yao-table th:nth-child(5),
 .yao-table td:nth-child(5) {
     min-width: 160px;
+    white-space: normal;
+}
+
+.yao-table th:nth-child(7),
+.yao-table td:nth-child(7) {
+    min-width: 110px;
     white-space: normal;
 }
 
@@ -519,12 +526,12 @@ button:disabled {
 
 /* 全局关系高亮 */
 .relation-highlight {
-    background: rgba(115, 102, 79, 0.09);
-    padding: 0 3px;
+    background: #e2d6bc;
+    padding: 1px 4px;
     border-radius: 4px;
-    font-weight: 500;
-    color: #4f463b;
-    box-shadow: inset 0 -1px 0 rgba(115, 102, 79, 0.28);
+    font-weight: 600;
+    color: #4d3f2e;
+    box-shadow: inset 0 0 0 1px rgba(143, 112, 68, 0.42);
 }
 /* 顶部行：日月干支和用神选择器两端对齐 */
 .header-row {
@@ -552,12 +559,15 @@ button:disabled {
 }
 
 .ben-main {
-    min-height: 0;
-    padding: 0;
+    position: relative;
+    min-height: 36px;
+    padding-top: 18px;
 }
 
 .fushen-cell {
-    padding-top: 9px !important;
+    position: relative;
+    padding-top: 27px !important;
+    padding-bottom: 8px !important;
 }
 
 .status-lines {
@@ -662,6 +672,10 @@ button:disabled {
     justify-content: center;
     max-width: none;
     margin: 3px 0 0;
+}
+
+.transformation-cell .transform-tags {
+    margin-top: 0;
 }
 
 .transform-tag {
@@ -932,6 +946,8 @@ button:disabled {
 .rule-trace-item {
     padding-top: 9px;
     border-top: 1px dashed #d6c9ba;
+    border-radius: 8px;
+    scroll-margin-top: 24px;
 }
 
 .rule-trace-title {
@@ -949,6 +965,48 @@ button:disabled {
     font-size: 0.68rem;
 }
 
+.rule-ref-link {
+    border-radius: 3px;
+    color: #6b5133;
+    font-family: Consolas, monospace;
+    font-weight: 700;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+}
+
+.rule-ref-link:hover {
+    background: #eee3d1;
+    color: #4f3820;
+}
+
+.rule-ref-link:focus-visible {
+    outline: 2px solid #8b6f4c;
+    outline-offset: 2px;
+}
+
+.rule-trace-item:focus {
+    outline: none;
+}
+
+.rule-trace-item.rule-trace-flash {
+    animation: rule-trace-flash 1.35s ease-out;
+}
+
+@keyframes rule-trace-flash {
+    0% {
+        background: #dfcfaa;
+        box-shadow: 0 0 0 3px rgba(151, 119, 70, 0.34);
+    }
+    45% {
+        background: #eee4cf;
+        box-shadow: 0 0 0 1px rgba(151, 119, 70, 0.18);
+    }
+    100% {
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
 .rule-trace-source,
 .rule-trace-quote {
     margin-top: 3px;
@@ -961,7 +1019,15 @@ button:disabled {
     color: #725431;
 }
 
-/* 四神标记：紧贴六亲横排，不改变卦行底色与高度 */
+/* 四神标记：固定在六亲上方，不参与文本流 */
+.yao-table tbody tr.yongshen-highlight td {
+    background: #e4eadc !important;
+}
+
+.yao-table tbody tr.yongshen-highlight td:first-child {
+    box-shadow: inset 3px 0 0 #73866a;
+}
+
 .yao-role-marker {
     display: inline-flex;
     flex: 0 0 auto;
@@ -989,12 +1055,14 @@ button:disabled {
 
 .ben-main > .yao-role-marker,
 .fushen-cell > .yao-role-marker {
-    position: static;
-    transform: none;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .fushen-cell > .yao-role-marker {
-    margin-right: 4px;
+    top: 6px;
 }
 
 .marker-yongshen {
@@ -1041,6 +1109,12 @@ button:disabled {
     .yao-role-marker,
     .yao-role-marker::before {
         animation: none;
+    }
+
+    .rule-trace-item.rule-trace-flash {
+        animation: none;
+        background: #eee4cf;
+        box-shadow: 0 0 0 2px rgba(151, 119, 70, 0.25);
     }
 }
 
