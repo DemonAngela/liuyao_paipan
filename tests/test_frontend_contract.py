@@ -65,3 +65,32 @@ def test_initial_ui_is_hidden_and_accessible():
     assert '<html lang="zh-CN">' in html
     assert 'for="time-input"' in html
     assert 'for="specify-time-input"' in html
+
+
+def test_ganzhi_is_the_fifth_menu_and_supports_custom_time():
+    html = (FRONTEND / "index.html").read_text(encoding="utf-8")
+    qigua = (FRONTEND / "js" / "qigua.js").read_text(encoding="utf-8")
+
+    button_ids = [
+        'id="btn-auto"',
+        'id="btn-manual"',
+        'id="btn-specify"',
+        'id="btn-time"',
+        'id="btn-ganzhi"',
+    ]
+    assert [html.index(value) for value in button_ids] == sorted(
+        html.index(value) for value in button_ids
+    )
+    for element_id in (
+        'id="ganzhi-panel"',
+        'id="ganzhi-time-input"',
+        'id="today-ganzhi"',
+        'id="today-solar"',
+        'id="today-lunar"',
+        'id="btn-refresh-ganzhi"',
+    ):
+        assert element_id in html
+    assert 'type="datetime-local"' in html
+    assert "/api/ganzhi/today" in qigua
+    assert "/api/ganzhi/query" in qigua
+    assert "readLocalDateTime('ganzhi-time-input')" in qigua

@@ -9,7 +9,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from lunar_python import Solar
+from lunar_python import LunarYear, Solar
 
 TIAN_GAN = list("甲乙丙丁戊己庚辛壬癸")
 DI_ZHI = list("子丑寅卯辰巳午未申酉戌亥")
@@ -165,3 +165,55 @@ def get_current_ganzhi(now: dt.datetime | None = None) -> dict[str, Any]:
         value.minute,
         value.second,
     )
+
+
+def get_calendar_summary(
+    now: dt.datetime | None = None,
+    *,
+    include_time: bool = False,
+) -> dict[str, str]:
+    """返回本地日期的干支、公历和农历摘要。
+
+    ``include_time`` 用于自定义时间查询：干支增加时柱，公历增加所选时刻。
+    """
+
+    value = (now or dt.datetime.now()).replace(microsecond=0)
+    solar = Solar.fromYmdHms(
+        value.year,
+        value.month,
+        value.day,
+        value.hour,
+        value.minute,
+        value.second,
+    )
+    lunar = solar.getLunar()
+    eight_char = lunar.getEightChar()
+    eight_char.setSect(2)
+    lunar_month = LunarYear.fromYear(lunar.getYear()).getMonth(
+        lunar.getMonth()
+    )
+    month_size = "大" if lunar_month.getDayCount() == 30 else "小"
+    lunar_year = lunar.getYearInChinese().replace("〇", "零")
+
+    ganzhi = (
+        f"{eight_char.getYear()}年 "
+        f"{eight_char.getMonth()}月 "
+        f"{eight_char.getDay()}日"
+    )
+    solar_text = f"{value.year}年{value.month}月{value.day}日"
+    if include_time:
+        ganzhi += f" {eight_char.getTime()}时"
+        clock = f"{value.hour:02d}:{value.minute:02d}"
+        if value.second:
+            clock += f":{value.second:02d}"
+        solar_text += f" {clock}"
+
+    return {
+        "ganzhi": ganzhi,
+        "solar": f"{solar_text} 星期{solar.getWeekInChinese()}",
+        "lunar": (
+            f"{lunar_year}年 "
+            f"{lunar.getMonthInChinese()}月({month_size}) "
+            f"{lunar.getDayInChinese()}"
+        ),
+    }

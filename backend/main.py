@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import cidian, paipan, qigua
+from .api import cidian, ganzhi, paipan, qigua
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
@@ -44,7 +44,7 @@ def create_app(
 
     application = FastAPI(
         title="周易六爻排盘系统",
-        version="1.1.0",
+        version="1.2.0",
     )
     if origins:
         application.add_middleware(
@@ -58,6 +58,7 @@ def create_app(
     application.include_router(qigua.router)
     application.include_router(paipan.router)
     application.include_router(cidian.router)
+    application.include_router(ganzhi.router)
 
     @application.get("/healthz", include_in_schema=False)
     async def healthz() -> dict[str, str]:

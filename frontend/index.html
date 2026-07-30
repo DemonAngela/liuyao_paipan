@@ -26,6 +26,8 @@
                         aria-pressed="false" aria-controls="specify-panel">手工指定</button>
                 <button type="button" id="btn-time" class="method-btn"
                         aria-pressed="false" aria-controls="time-options">时间起卦</button>
+                <button type="button" id="btn-ganzhi" class="method-btn"
+                        aria-pressed="false" aria-controls="ganzhi-panel">干支查询</button>
             </div>
 
             <!-- 自动/时间起卦参数（可选） -->
@@ -72,6 +74,33 @@
                     <input type="datetime-local" id="time-input" class="datetime-input">
                 </div>
                 <button type="button" id="btn-start-time" class="primary-btn">时间起卦</button>
+            </div>
+
+            <!-- 天干地支查询 -->
+            <div id="ganzhi-panel" class="ganzhi-panel hidden"
+                 aria-labelledby="ganzhi-panel-title">
+                <h3 id="ganzhi-panel-title">天干地支查询</h3>
+                <div class="datetime-inputs">
+                    <label for="ganzhi-time-input">查询时间（留空为今日）：</label>
+                    <input type="datetime-local" id="ganzhi-time-input"
+                           class="datetime-input">
+                </div>
+                <dl class="ganzhi-summary">
+                    <div class="ganzhi-item">
+                        <dt>干支</dt>
+                        <dd id="today-ganzhi">—</dd>
+                    </div>
+                    <div class="ganzhi-item">
+                        <dt>公历</dt>
+                        <dd id="today-solar">—</dd>
+                    </div>
+                    <div class="ganzhi-item">
+                        <dt>农历</dt>
+                        <dd id="today-lunar">—</dd>
+                    </div>
+                </dl>
+                <button type="button" id="btn-refresh-ganzhi"
+                        class="primary-btn">查询</button>
             </div>
 
             <div id="app-status" class="app-status info" role="status"

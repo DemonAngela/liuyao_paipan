@@ -41,7 +41,7 @@ function postJson(path, payload) {
 }
 
 function initQiguaUI() {
-    const methods = ['auto', 'manual', 'specify', 'time'];
+    const methods = ['auto', 'manual', 'specify', 'time', 'ganzhi'];
     methods.forEach(method => {
         document.getElementById(`btn-${method}`).addEventListener(
             'click',
@@ -68,6 +68,10 @@ function initQiguaUI() {
     document.getElementById('btn-submit-specify').addEventListener(
         'click',
         submitSpecify
+    );
+    document.getElementById('btn-refresh-ganzhi').addEventListener(
+        'click',
+        loadGanzhiSummary
     );
     document.getElementById('specify-yao-list').addEventListener(
         'click',
@@ -102,6 +106,10 @@ function switchMethod(method) {
         'hidden',
         method !== 'time'
     );
+    document.getElementById('ganzhi-panel').classList.toggle(
+        'hidden',
+        method !== 'ganzhi'
+    );
 
     setStatus('');
     if (method === 'manual') {
@@ -109,6 +117,9 @@ function switchMethod(method) {
     }
     if (method === 'specify') {
         buildSpecifyPanel();
+    }
+    if (method === 'ganzhi') {
+        loadGanzhiSummary();
     }
 }
 
@@ -131,6 +142,28 @@ async function timeQigua() {
         });
         return requestPaipan(qiguaData);
     });
+}
+
+async function loadGanzhiSummary() {
+    const button = document.getElementById('btn-refresh-ganzhi');
+    const input = document.getElementById('ganzhi-time-input');
+    const hasCustomTime = Boolean(input.value);
+    await runAction(
+        button,
+        hasCustomTime ? '正在查询所选时间…' : '正在查询今日干支…',
+        hasCustomTime ? '所选时间历法已更新' : '今日历法已更新',
+        async () => {
+            const data = hasCustomTime
+                ? await postJson(
+                    '/api/ganzhi/query',
+                    readLocalDateTime('ganzhi-time-input')
+                )
+                : await requestJson('/api/ganzhi/today');
+            document.getElementById('today-ganzhi').textContent = data.ganzhi;
+            document.getElementById('today-solar').textContent = data.solar;
+            document.getElementById('today-lunar').textContent = data.lunar;
+        }
+    );
 }
 
 function buildSpecifyPanel() {

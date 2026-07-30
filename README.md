@@ -8,6 +8,7 @@
 - 手动逐爻、直接指定六爻和梅花时间起卦
 - 本卦、变卦、纳甲、六亲、世应、空亡及项目展示用生克关系
 - 按卦名查询卦辞、爻辞
+- 查询今日或自定义日期时间的干支、公历和农历
 - 同源提供前端页面和 API
 
 ## 规则边界
@@ -49,8 +50,8 @@ Windows 双击或执行：
 & '.\liuyao_start&stop.bat'
 ```
 
-该入口会自动检测状态：服务未运行时启动并打开页面，服务运行时停止。也可
-分别执行：
+该入口会启动服务并在就绪后打开页面；启动 CMD 会持续保留，关闭该窗口即
+关闭服务。需要后台管理时，也可分别执行：
 
 ```powershell
 .\start.bat
@@ -97,6 +98,8 @@ CORS 默认关闭并采用同源访问；白名单禁止 `*`。若需局域网�
 | `POST` | `/api/qigua/specify` | 指定六爻及可选时间 |
 | `POST` | `/api/qigua/time` | 梅花时间起卦 |
 | `POST` | `/api/paipan/` | 排盘 |
+| `GET` | `/api/ganzhi/today` | 查询今日干支、公历和农历 |
+| `POST` | `/api/ganzhi/query` | 查询自定义时间的四柱干支、公历和农历 |
 | `GET` | `/api/guaci/name/{gua_name}` | 按卦名查卦辞 |
 | `GET` | `/api/yaoci/name/{gua_name}/{yao_pos}` | 按卦名和爻位查爻辞 |
 | `GET` | `/healthz` | 服务存活检查 |

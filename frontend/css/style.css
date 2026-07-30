@@ -75,8 +75,49 @@ h1 {
     background: #c4b5a2;
 }
 
-.options-panel, .manual-panel, .specify-panel {
+.options-panel, .manual-panel, .specify-panel, .ganzhi-panel {
     margin-top: 15px;
+}
+
+.ganzhi-panel h3 {
+    margin-bottom: 12px;
+    color: #5a3e1b;
+}
+
+.ganzhi-panel .datetime-inputs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.ganzhi-summary {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ganzhi-item {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid #dfd3c3;
+    border-radius: 8px;
+    background: #fffaf4;
+}
+
+.ganzhi-item dt {
+    flex: 0 0 5rem;
+    color: #6b5338;
+    font-weight: 700;
+}
+
+.ganzhi-item dd {
+    min-width: 0;
+    color: #3a2c1b;
+    font-size: 1.05rem;
 }
 
 .primary-btn {
