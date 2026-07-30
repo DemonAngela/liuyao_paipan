@@ -3,7 +3,7 @@
 数据源：八宫六十四卦全图
 """
 import json
-from typing import List, Dict
+from pathlib import Path
 
 # ========== 基础映射 ==========
 GUA_CODE = {
@@ -63,27 +63,39 @@ def get_gong(idx: int) -> str:
     return GONG_GUA_LIST[(idx // 8) * 8][0]
 
 def liuqin(yao_wuxing: str, gong_wuxing: str) -> str:
-    if yao_wuxing == gong_wuxing: return '兄弟'
-    if (gong_wuxing, yao_wuxing) in [('木','火'),('火','土'),('土','金'),('金','水'),('水','木')]: return '子孙'
-    if (gong_wuxing, yao_wuxing) in [('木','土'),('火','金'),('土','水'),('金','木'),('水','火')]: return '妻财'
-    if (yao_wuxing, gong_wuxing) in [('木','火'),('火','土'),('土','金'),('金','水'),('水','木')]: return '父母'
+    wuxing_sheng = {
+        ('木', '火'), ('火', '土'), ('土', '金'),
+        ('金', '水'), ('水', '木')
+    }
+    wuxing_ke = {
+        ('木', '土'), ('火', '金'), ('土', '水'),
+        ('金', '木'), ('水', '火')
+    }
+    if yao_wuxing == gong_wuxing:
+        return '兄弟'
+    if (gong_wuxing, yao_wuxing) in wuxing_sheng:
+        return '子孙'
+    if (gong_wuxing, yao_wuxing) in wuxing_ke:
+        return '妻财'
+    if (yao_wuxing, gong_wuxing) in wuxing_sheng:
+        return '父母'
     return '官鬼'
 
-def na_dizhi(shang: str, xia: str) -> List[str]:
+def na_dizhi(shang: str, xia: str) -> list[str]:
     inner = NAJIA_TABLE[xia]
     outer = NAJIA_TABLE[shang]
-    def get_three(start: str, order: str) -> List[str]:
+    def get_three(start: str, order: str) -> list[str]:
         idx = DIZHI_ORDER.index(start)
         step = 2 if order == '顺' else -2
         return [DIZHI_ORDER[(idx + i * step) % 12] for i in range(3)]
     return get_three(inner['inner'], inner['order']) + get_three(outer['outer'], outer['order'])
 
-def get_yinyang(shang: str, xia: str) -> List[int]:
+def get_yinyang(shang: str, xia: str) -> list[int]:
     xia_code = next(k for k,v in GUA_CODE.items() if v == xia)
     shang_code = next(k for k,v in GUA_CODE.items() if v == shang)
     return [int(c) for c in xia_code + shang_code]
 
-def generate_all() -> Dict:
+def generate_all() -> dict:
     data = {}
     for idx, (shang, xia, shi, name) in enumerate(GONG_GUA_LIST):
         gong = get_gong(idx)
@@ -136,28 +148,28 @@ def validate_gua_list():
     if errors:
         print(f"\n发现 {len(errors)} 个错误：")
         for err in errors[:15]:
-            print(f"  ❌ {err}")
+            print(f"  [错误] {err}")
         return False
-    else:
-        print(f"\n✅ 验证通过！共{len(GONG_GUA_LIST)}卦，阴阳序列全部唯一。")
-        return True
+    print(f"\n[通过] 共{len(GONG_GUA_LIST)}卦，阴阳序列全部唯一。")
+    return True
 
-if __name__ == '__main__':
+def main() -> None:
+    """校验并原子性地更新同目录下的六十四卦数据。"""
+
     if not validate_gua_list():
-        print("\n请修正列表后重试。")
-        exit(1)
+        raise SystemExit("请修正八宫卦表后重试。")
 
     result = generate_all()
+    output_path = Path(__file__).with_name("64gua_full.json")
+    temporary_path = output_path.with_suffix(".json.tmp")
+    temporary_path.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    temporary_path.replace(output_path)
+    print(f"\n数据已更新：{output_path}")
 
-    print("\n测试关键卦的阴阳序列：")
-    test_names = ['山天大畜','雷水解','风雷益','山风蛊','山水蒙','泽天夬','水地比','雷山小过','雷泽归妹']
-    for name in test_names:
-        for k,v in result.items():
-            if v['name'] == name:
-                yinyang_str = ''.join(str(y['yin_yang']) for y in v['yao_list'])
-                print(f"  {name}：{yinyang_str}")
-                break
 
-    with open('64gua_full.json', 'w', encoding='utf-8') as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    print("\n✅ 文件已生成：64gua_full.json")
+if __name__ == '__main__':
+    main()

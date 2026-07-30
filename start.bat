@@ -1,7 +1,13 @@
 @echo off
 chcp 65001 >nul
-echo 正在启动周易六爻排盘系统...
-cd /d %~dp0
-call .\venv\Scripts\activate.bat 2>nul || echo 虚拟环境未找到，请先创建虚拟环境并安装依赖
-uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-pause
+setlocal
+cd /d "%~dp0"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\server.ps1" start -OpenBrowser
+set "SCRIPT_EXIT=%ERRORLEVEL%"
+if not "%SCRIPT_EXIT%"=="0" (
+    echo.
+    echo 启动失败，请检查上方信息。
+    pause
+)
+exit /b %SCRIPT_EXIT%

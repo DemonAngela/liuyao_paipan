@@ -42,6 +42,12 @@
     `frontend/favicon.svg`、`backend/core/guaci.py`、
     `backend/api/cidian.py`、`tests/test_cidian.py`、
     `tests/test_frontend_contract.py`。
+  - 第四阶段：`backend/main.py`、`tests/test_app_config.py`、
+    `scripts/server.ps1`、`start.bat`、`stop.bat`、`.gitattributes`、
+    `requirements*.txt`、`requirements*.lock`、`.github/workflows/`、
+    `backend/data/generate_64gua_table.py`、`backend/data/64gua_full.json`、
+    `init_project.py`、`README.md`、`docs/ARCHITECTURE.md`；删除空校验器、
+    误导性启停脚本及生成器备份文件。
 - 验证结果：
   - 第一阶段 25 项历法、梅花起卦、概率映射和 API 契约测试通过。
   - 第一阶段新增/重写文件 Ruff 检查通过，`git diff --check` 通过。
@@ -53,11 +59,18 @@
   - 真实 Chromium 已通过自动、指定时间、手工指定、六次手摇四条流程；
     网络记录确认分别调用对应起卦接口及排盘接口，422 失败会显示在
     `aria-live` 状态区，浏览器控制台无错误。
+  - 第四阶段在全新虚拟环境中使用 `--require-hashes` 安装开发锁文件成功，
+    `pip check` 无依赖冲突。
+  - 最终 48 项测试、Ruff、Python 编译、全部 JavaScript 语法及
+    `git diff --check` 通过。
+  - 数据生成器在 Windows 默认环境执行成功，连续生成 SHA-256 一致；输出
+    固定为 UTF-8/LF 并通过原子替换写入目标文件。
+  - Windows PowerShell 5.1 已通过服务启动、状态查询、HTTP 健康检查、
+    PID/启动时间身份校验停止及状态文件清理。
 - 验收门槛：
   - 单元、API、前端静态检查全部通过。
   - 64 卦数据与 4,096 种本卦/动爻组合回归通过。
   - 真实浏览器四种起卦流程及失败路径通过。
   - 历法权威样本和梅花易数原典样本通过。
 - 剩余风险：六爻流派差异需以文档明确，不以未取证规则冒充统一标准。
-- 下一步：收紧 CORS 与服务配置，统一启动脚本，补齐依赖锁定、CI、
-  项目文档及剩余低优先级清理。
+- 下一步：提交第四阶段，推送修复分支并确认远程 CI 结果。

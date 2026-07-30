@@ -5,6 +5,7 @@
 
 from typing import List, Tuple
 
+
 def mark_xunkong(dizhi_list: List[str], xunkong: Tuple[str, str]) -> List[bool]:
     """
     为六爻标注旬空。

@@ -4,7 +4,7 @@
 """
 
 import os
-import sys
+
 
 def create_dir(path):
     """创建目录，若已存在则忽略"""
@@ -424,7 +424,7 @@ pause
 
 1. 创建虚拟环境：
 python -m venv venv
-venv\Scripts\activate
+venv\\Scripts\\activate
  
 2. 安装依赖：
 pip install -r requirements.txt

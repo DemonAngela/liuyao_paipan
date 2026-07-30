@@ -1,57 +1,105 @@
-"""
-FastAPI 主入口
-兼容直接运行和模块运行
-"""
+"""FastAPI 应用入口与运行配置。"""
 
-import sys
+from __future__ import annotations
+
 import os
-
-# 将项目根目录加入 sys.path，确保能导入 backend 包
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+from collections.abc import Sequence
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import uvicorn
+from fastapi.staticfiles import StaticFiles
 
-from backend.api import qigua, paipan, cidian
+from .api import cidian, paipan, qigua
 
-app = FastAPI(title="周易六爻排盘系统", version="1.0.0")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-app.include_router(qigua.router)
-app.include_router(paipan.router)
-app.include_router(cidian.router)
+def _configured_cors_origins() -> tuple[str, ...]:
+    raw = os.getenv("LIUYAO_CORS_ORIGINS", "")
+    origins = tuple(
+        value.strip().rstrip("/")
+        for value in raw.split(",")
+        if value.strip()
+    )
+    if "*" in origins:
+        raise ValueError("LIUYAO_CORS_ORIGINS 不允许使用通配符 *")
+    return origins
 
-frontend_path = os.path.join(project_root, "frontend")
-if os.path.exists(frontend_path):
-    # 将 frontend 目录挂载到根路径，但不覆盖 API 路由
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
-@app.get("/")
-async def root():
-    index_path = os.path.join(frontend_path, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "周易六爻排盘系统 API 已运行，请访问前端页面。"}
+def create_app(
+    cors_origins: Sequence[str] | None = None,
+) -> FastAPI:
+    """创建应用；默认同源运行，仅为显式白名单启用 CORS。"""
+
+    origins = (
+        tuple(cors_origins)
+        if cors_origins is not None
+        else _configured_cors_origins()
+    )
+    if "*" in origins:
+        raise ValueError("CORS 白名单不允许使用通配符 *")
+
+    application = FastAPI(
+        title="周易六爻排盘系统",
+        version="1.1.0",
+    )
+    if origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(origins),
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type"],
+        )
+
+    application.include_router(qigua.router)
+    application.include_router(paipan.router)
+    application.include_router(cidian.router)
+
+    @application.get("/healthz", include_in_schema=False)
+    async def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @application.get("/", include_in_schema=False)
+    async def root():
+        index_path = FRONTEND_DIR / "index.html"
+        if index_path.is_file():
+            return FileResponse(index_path)
+        return {"message": "周易六爻排盘系统 API 已运行"}
+
+    if FRONTEND_DIR.is_dir():
+        application.mount(
+            "/",
+            StaticFiles(directory=FRONTEND_DIR, html=True),
+            name="frontend",
+        )
+    return application
+
+
+app = create_app()
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} 必须是布尔值")
+
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(
         "backend.main:app",
-        host="::",          # 双栈监听，兼容 IPv4 和 IPv6
-        #host="127.0.0.1",  # IPv4
-        #host="0.0.0.0",  # 双栈监听，兼容 IPv4 和 IPv6
-        port=8000,
-        reload=True         # 开发模式热重载，生产环境可设为 False
+        host=os.getenv("LIUYAO_HOST", "127.0.0.1"),
+        port=int(os.getenv("LIUYAO_PORT", "8000")),
+        reload=_env_flag("LIUYAO_RELOAD"),
     )

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 安装锁定依赖
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+
+      - name: Python 静态检查
+        run: python -m ruff check backend tests init_project.py
+
+      - name: Python 编译检查
+        run: python -m compileall -q backend init_project.py
+
+      - name: JavaScript 语法检查
+        shell: bash
+        run: |
+          for file in frontend/js/*.js; do
+            node --check "$file"
+          done
+
+      - name: 自动化测试
+        run: python -m pytest

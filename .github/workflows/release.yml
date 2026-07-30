@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 安装锁定依赖
+        run: python -m pip install --require-hashes -r requirements-dev.lock
+
+      - name: 发布前验收
+        shell: bash
+        run: |
+          python -m ruff check backend tests init_project.py
+          python -m compileall -q backend init_project.py
+          for file in frontend/js/*.js; do
+            node --check "$file"
+          done
+          python -m pytest
+
+      - name: 生成源码包与校验和
+        shell: bash
+        run: |
+          mkdir -p dist
+          archive_name="liuyao_paipan-${GITHUB_REF_NAME}.zip"
+          archive="dist/${archive_name}"
+          git archive \
+            --format=zip \
+            --prefix="liuyao_paipan-${GITHUB_REF_NAME}/" \
+            --output="$archive" \
+            HEAD
+          (
+            cd dist
+            sha256sum "$archive_name" > "${archive_name}.sha256"
+          )
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          archive="dist/liuyao_paipan-${GITHUB_REF_NAME}.zip"
+          gh release create "$GITHUB_REF_NAME" \
+            "$archive" \
+            "${archive}.sha256" \
+            --verify-tag \
+            --generate-notes \
+            --title "$GITHUB_REF_NAME"
