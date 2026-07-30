@@ -1,31 +1,39 @@
-"""
-排盘 API 路由
-"""
+"""排盘 API。"""
+
+from __future__ import annotations
+
+import logging
 
 from fastapi import APIRouter, HTTPException
-from ..models.gua import GuaDataModel, QiguaResponse
+
 from ..core.liuyao_engine import LiuyaoEngine
+from ..models.gua import GuaDataModel, QiguaResponse
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/paipan", tags=["排盘"])
-
 engine = LiuyaoEngine()
 
 
 @router.post("/", response_model=GuaDataModel)
 async def paipan(qigua_response: QiguaResponse):
-    """
-    根据起卦结果进行完整排盘
-    """
+    """根据已校验的起卦结果进行完整排盘。"""
+
+    timestamp = qigua_response.timestamp
     try:
-        qigua_dict = {
-            "yao_list": qigua_response.yao_list,
-            "changing_yao": qigua_response.changing_yao,
-            "year": qigua_response.timestamp["year"],
-            "month": qigua_response.timestamp["month"],
-            "day": qigua_response.timestamp["day"],
-            "hour": qigua_response.timestamp["hour"]
-        }
-        result = engine.paipan(qigua_dict)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"排盘失败: {str(e)}")
+        return engine.paipan(
+            {
+                "yao_list": qigua_response.yao_list,
+                "changing_yao": qigua_response.changing_yao,
+                "year": timestamp.year,
+                "month": timestamp.month,
+                "day": timestamp.day,
+                "hour": timestamp.hour,
+                "minute": timestamp.minute,
+                "second": timestamp.second,
+            }
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="排盘数据无效") from exc
+    except Exception as exc:
+        logger.exception("排盘失败")
+        raise HTTPException(status_code=500, detail="排盘失败") from exc

@@ -25,78 +25,10 @@ else:
     from .shengke import ShengKeCalculator
     from ..utils.constants import DIZHI_WUXING, GUA_WUXING
 
-# 类型定义
-try:
-    from ..models.gua import GuaData, YaoData, BianguaYaoData
-except ImportError:
-    class YaoData:
-        def __init__(self, position: int, yin_yang: int, is_changing: bool = False,
-                     dizhi: str = '', wuxing: str = '', liuqin: str = '',
-                     liushen: str = '', is_kong: bool = False,
-                     biangua_yao: Optional['BianguaYaoData'] = None,
-                     biangua_info: Optional['BianguaYaoData'] = None,
-                     shengke: str = '',
-                     fushen: Optional[str] = None,
-                     # 新增日月关系字段
-                     ri_zhi: bool = False, ri_sheng: bool = False, ri_ke: bool = False,
-                     ri_chong: bool = False, ri_he: bool = False,
-                     yue_zhi: bool = False, yue_sheng: bool = False, yue_ke: bool = False,
-                     yue_chong: bool = False, yue_he: bool = False,
-                     is_andong: bool = False, is_ripo: bool = False, is_yuepo: bool = False,
-                     ri_lin: bool = False, yue_lin: bool = False):
-            self.position = position
-            self.yin_yang = yin_yang
-            self.is_changing = is_changing
-            self.dizhi = dizhi
-            self.wuxing = wuxing
-            self.liuqin = liuqin
-            self.liushen = liushen
-            self.is_kong = is_kong
-            self.biangua_yao = biangua_yao
-            self.biangua_info = biangua_info
-            self.shengke = shengke
-            self.fushen = fushen
-            # 新增属性赋值
-            self.ri_zhi = ri_zhi
-            self.ri_sheng = ri_sheng
-            self.ri_ke = ri_ke
-            self.ri_chong = ri_chong
-            self.ri_he = ri_he
-            self.yue_zhi = yue_zhi
-            self.yue_sheng = yue_sheng
-            self.yue_ke = yue_ke
-            self.yue_chong = yue_chong
-            self.yue_he = yue_he
-            self.is_andong = is_andong
-            self.is_ripo = is_ripo
-            self.is_yuepo = is_yuepo
-            self.ri_lin = ri_lin
-            self.yue_lin = yue_lin
-
-    class BianguaYaoData:
-        def __init__(self, yin_yang: int, dizhi: str, wuxing: str, liuqin: str, is_kong: bool = False):
-            self.yin_yang = yin_yang
-            self.dizhi = dizhi
-            self.wuxing = wuxing
-            self.liuqin = liuqin
-            self.is_kong = is_kong
-
-    class GuaData:
-        def __init__(self, ben_gua_name: str, bian_gua_name: str,
-                     yao_list: List[YaoData], shi_yao: int, ying_yao: int,
-                     gan_zhi: Dict[str, str], xunkong: Tuple[str, str],
-                     relations: Dict[str, Any], special_attr: Optional[str] = None,
-                     bian_special_attr: Optional[str] = None):   # 新增参数
-            self.ben_gua_name = ben_gua_name
-            self.bian_gua_name = bian_gua_name
-            self.yao_list = yao_list
-            self.shi_yao = shi_yao
-            self.ying_yao = ying_yao
-            self.gan_zhi = gan_zhi
-            self.xunkong = xunkong
-            self.relations = relations
-            self.special_attr = special_attr
-            self.bian_special_attr = bian_special_attr
+if __name__ == '__main__' and __package__ is None:
+    from backend.models.gua import BianguaYaoData, GuaData, YaoData
+else:
+    from ..models.gua import BianguaYaoData, GuaData, YaoData
 
 
 class LiuyaoEngine:
@@ -172,8 +104,17 @@ class LiuyaoEngine:
         month = qigua_result['month']
         day = qigua_result['day']
         hour = qigua_result.get('hour', 0)
+        minute = qigua_result.get('minute', 0)
+        second = qigua_result.get('second', 0)
 
-        ganzhi_info = get_ganzhi_by_date(year, month, day, hour)
+        ganzhi_info = get_ganzhi_by_date(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+        )
         day_gan = ganzhi_info['day'][0]
         xunkong = ganzhi_info['xunkong']
         ganzhi_info.pop('xunkong', None)

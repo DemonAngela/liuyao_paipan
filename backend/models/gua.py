@@ -1,99 +1,285 @@
-"""
-卦象数据模型定义
-用于 API 请求/响应序列化
-"""
+"""排盘领域对象与 API 数据模型。"""
 
-from typing import List, Optional, Dict, Any, Tuple
-from pydantic import BaseModel
+from __future__ import annotations
+
+import datetime as dt
+from dataclasses import dataclass
+from typing import Annotated, Any, Literal, TypeAlias
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+YaoValue: TypeAlias = Literal[0, 1]
+YaoValues: TypeAlias = Annotated[list[YaoValue], Field(min_length=6, max_length=6)]
+ChangingFlags: TypeAlias = Annotated[list[bool], Field(min_length=6, max_length=6)]
+YearValue: TypeAlias = Annotated[int, Field(ge=1900, le=2099)]
+MonthValue: TypeAlias = Annotated[int, Field(ge=1, le=12)]
+DayValue: TypeAlias = Annotated[int, Field(ge=1, le=31)]
+HourValue: TypeAlias = Annotated[int, Field(ge=0, le=23)]
+MinuteSecondValue: TypeAlias = Annotated[int, Field(ge=0, le=59)]
 
 
-class BianguaYaoDataModel(BaseModel):
-    """变爻数据模型（用于动爻的变爻详情）"""
+class StrictModel(BaseModel):
+    """禁止额外字段和隐式类型转换的公共基类。"""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class TimestampModel(StrictModel):
+    """项目统一使用的本地民用时间，不隐式附加时区。"""
+
+    year: YearValue
+    month: MonthValue
+    day: DayValue
+    hour: HourValue
+    minute: MinuteSecondValue = 0
+    second: MinuteSecondValue = 0
+
+    @model_validator(mode="after")
+    def validate_calendar_date(self) -> TimestampModel:
+        dt.datetime(
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+        )
+        return self
+
+    @classmethod
+    def from_datetime(cls, value: dt.datetime) -> TimestampModel:
+        return cls(
+            year=value.year,
+            month=value.month,
+            day=value.day,
+            hour=value.hour,
+            minute=value.minute,
+            second=value.second,
+        )
+
+    def to_datetime(self) -> dt.datetime:
+        return dt.datetime(
+            self.year,
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+        )
+
+
+class DateTimeRequest(StrictModel):
+    """允许完全省略时间；一旦指定日期，就必须同时给出年月日。"""
+
+    year: YearValue | None = None
+    month: MonthValue | None = None
+    day: DayValue | None = None
+    hour: HourValue | None = None
+    minute: MinuteSecondValue | None = None
+    second: MinuteSecondValue | None = None
+
+    @model_validator(mode="after")
+    def validate_datetime_group(self) -> DateTimeRequest:
+        date_values = (self.year, self.month, self.day)
+        has_date = any(value is not None for value in date_values)
+        if has_date and not all(value is not None for value in date_values):
+            raise ValueError("指定时间时必须同时提供 year、month、day")
+        if not has_date and any(
+            value is not None for value in (self.hour, self.minute, self.second)
+        ):
+            raise ValueError("不能只提供时分秒而省略年月日")
+        if has_date:
+            dt.datetime(
+                self.year,
+                self.month,
+                self.day,
+                self.hour or 0,
+                self.minute or 0,
+                self.second or 0,
+            )
+        return self
+
+    def resolve_datetime(self, now: dt.datetime | None = None) -> dt.datetime:
+        if self.year is None:
+            return (now or dt.datetime.now()).replace(microsecond=0)
+        return dt.datetime(
+            self.year,
+            self.month,
+            self.day,
+            self.hour or 0,
+            self.minute or 0,
+            self.second or 0,
+        )
+
+
+class TimeQiguaRequest(DateTimeRequest):
+    method: Literal["time"] = "time"
+
+
+class SpecifyQiguaRequest(DateTimeRequest):
+    method: Literal["specify"] = "specify"
+    yao_values: YaoValues
+    changing_yao: ChangingFlags = Field(default_factory=lambda: [False] * 6)
+
+
+QiguaRequest: TypeAlias = TimeQiguaRequest | SpecifyQiguaRequest
+
+
+class ManualYaoResult(StrictModel):
+    yin_yang: YaoValue
+    is_changing: bool
+
+
+ManualYaoResults: TypeAlias = Annotated[
+    list[ManualYaoResult], Field(min_length=6, max_length=6)
+]
+
+
+class QiguaResponse(StrictModel):
+    """所有起卦方式统一返回的排盘输入。"""
+
+    yao_list: YaoValues
+    changing_yao: ChangingFlags
+    timestamp: TimestampModel
+
+
+@dataclass(slots=True)
+class BianguaYaoData:
     yin_yang: int
     dizhi: str
     wuxing: str
     liuqin: str
-    is_kong: bool = False   # 新增：变爻是否旬空
+    is_kong: bool = False
 
 
-class YaoDataModel(BaseModel):
-    """爻数据模型"""
+@dataclass(slots=True)
+class YaoData:
     position: int
     yin_yang: int
+    is_changing: bool = False
+    dizhi: str = ""
+    wuxing: str = ""
+    liuqin: str = ""
+    liushen: str = ""
+    is_kong: bool = False
+    biangua_yao: BianguaYaoData | None = None
+    biangua_info: BianguaYaoData | None = None
+    shengke: str = ""
+    fushen: str | None = None
+    ri_zhi: bool = False
+    ri_sheng: bool = False
+    ri_ke: bool = False
+    ri_chong: bool = False
+    ri_he: bool = False
+    yue_zhi: bool = False
+    yue_sheng: bool = False
+    yue_ke: bool = False
+    yue_chong: bool = False
+    yue_he: bool = False
+    is_andong: bool = False
+    is_ripo: bool = False
+    is_yuepo: bool = False
+    ri_lin: bool = False
+    yue_lin: bool = False
+
+
+@dataclass(slots=True)
+class GuaData:
+    ben_gua_name: str
+    bian_gua_name: str
+    yao_list: list[YaoData]
+    shi_yao: int
+    ying_yao: int
+    gan_zhi: dict[str, str]
+    xunkong: tuple[str, str]
+    relations: dict[str, Any]
+    special_attr: str | None = None
+    bian_special_attr: str | None = None
+
+
+class AttributeModel(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        strict=True,
+        from_attributes=True,
+    )
+
+
+class BianguaYaoDataModel(AttributeModel):
+    yin_yang: YaoValue
+    dizhi: str
+    wuxing: str
+    liuqin: str
+    is_kong: bool = False
+
+
+class YaoDataModel(AttributeModel):
+    position: Annotated[int, Field(ge=1, le=6)]
+    yin_yang: YaoValue
     is_changing: bool
     dizhi: str
     wuxing: str
     liuqin: str
     liushen: str
     is_kong: bool
-    biangua_yao: Optional[BianguaYaoDataModel] = None   # 动爻的变爻详情
-    biangua_info: Optional[BianguaYaoDataModel] = None  # 新增：变卦对应爻信息（无论是否动爻）
-    shengke: str = ''
-    fushen: Optional[str] = None   # 伏神，格式如“父母子水”，无则显示“—”
-    # 新增日月冲合与暗动字段
-    ri_chong: bool = False      # 日建冲
-    yue_chong: bool = False     # 月建冲
-    ri_he: bool = False         # 日建合
-    yue_he: bool = False        # 月建合
-    is_andong: bool = False     # 暗动
-    is_ripo: bool = False       # 日破
-    is_yuepo: bool = False      # 月破
-    # 日建关系
-    ri_zhi: bool = False      # 临日（值日）
-    ri_sheng: bool = False    # 日生
-    ri_ke: bool = False       # 日克
-    ri_chong: bool = False    # 日冲
-    ri_he: bool = False       # 日合
-    # 月建关系
+    biangua_yao: BianguaYaoDataModel | None = None
+    biangua_info: BianguaYaoDataModel | None = None
+    shengke: str = ""
+    fushen: str | None = None
+    ri_zhi: bool = False
+    ri_sheng: bool = False
+    ri_ke: bool = False
+    ri_chong: bool = False
+    ri_he: bool = False
     yue_zhi: bool = False
     yue_sheng: bool = False
     yue_ke: bool = False
     yue_chong: bool = False
     yue_he: bool = False
-    # 日月关系补充
-    ri_lin: bool = False       # 日建五行相同（临/扶）
-    yue_lin: bool = False      # 月建五行相同
+    is_andong: bool = False
+    is_ripo: bool = False
+    is_yuepo: bool = False
+    ri_lin: bool = False
+    yue_lin: bool = False
 
 
-class GuaDataModel(BaseModel):
-    """完整排盘结果模型"""
+class GanZhiModel(StrictModel):
+    year: str
+    month: str
+    day: str
+    hour: str
+
+
+class SanheItemModel(StrictModel):
+    pos: Annotated[int, Field(ge=1, le=6)]
+    dizhi: str
+    is_bian: bool
+    src_pos: Annotated[int, Field(ge=1, le=6)] | None = None
+
+
+class SanheRelationModel(StrictModel):
+    wuxing: str
+    items: list[SanheItemModel]
+
+
+class RelationsModel(StrictModel):
+    liuhe: list[tuple[str, str, int, int]]
+    liuchong: list[tuple[str, str, int, int]]
+    sanhe: list[SanheRelationModel]
+    shengwangmujue: list[dict[str, str | None]]
+    shengwangmujue_details: list[str]
+
+
+class GuaDataModel(AttributeModel):
+    """完整排盘响应。"""
+
     ben_gua_name: str
     bian_gua_name: str
-    yao_list: List[YaoDataModel]
-    shi_yao: int
-    ying_yao: int
-    gan_zhi: Dict[str, str]
-    xunkong: Tuple[str, str]
-    relations: Dict[str, Any]
-    special_attr: Optional[str] = None   # 新增：六冲/六合/归魂/游魂
-    bian_special_attr: Optional[str] = None  # 新增：变卦特殊标记
-
-
-class QiguaRequest(BaseModel):
-    """起卦请求模型"""
-    method: str
-    yao_values: Optional[List[int]] = None
-    changing_yao: Optional[List[bool]] = None
-    year: Optional[int] = None
-    month: Optional[int] = None
-    day: Optional[int] = None
-    hour: Optional[int] = 0
-
-
-class QiguaResponse(BaseModel):
-    """起卦响应模型"""
-    yao_list: List[int]
-    changing_yao: List[bool]
-    timestamp: Dict[str, int]
-
-relations = {
-    "liuhe": [...],
-    "liuchong": [...],
-    "sanhe": [...],  # 包含成局的详细信息
-    "banhe": [...],  # 半合局
-    "dongyao_chonghe": [...],
-    "shengwangmujue": [...],
-    "andong_list": [1, 3],  # 暗动爻位
-    "ripo_list": [2],  # 日破爻位
-    "yuepo_list": [4]  # 月破爻位
-}
+    yao_list: list[YaoDataModel]
+    shi_yao: Annotated[int, Field(ge=1, le=6)]
+    ying_yao: Annotated[int, Field(ge=1, le=6)]
+    gan_zhi: GanZhiModel
+    xunkong: tuple[str, str]
+    relations: RelationsModel
+    special_attr: str | None = None
+    bian_special_attr: str | None = None
