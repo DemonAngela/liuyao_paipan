@@ -1,113 +1,190 @@
-"""
-六爻排盘核心引擎（查表法修正版）
-加载预先生成的六十四卦全量数据，保证卦宫、世应、纳甲、六亲准确无误。
-动态计算部分：干支、六神、旬空、动变关系、生克冲合。
-新增伏神计算功能。
+"""六爻排盘核心引擎。
+
+静态卦宫、世应、纳甲与六亲来自已校验的六十四卦数据；运行时只计算
+干支、六神、旬空、伏神、动变和生克冲合关系。
 """
 
-import sys
-import os
+from __future__ import annotations
+
 import json
-from typing import List, Dict, Tuple, Optional, Any
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
 
-# 处理直接运行时的路径问题
-if __name__ == '__main__' and __package__ is None:
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from backend.core.ganzhi import get_ganzhi_by_date
-    from backend.core.liushen import assign_liushen
-    from backend.core.xunkong import mark_xunkong
-    from backend.core.shengke import ShengKeCalculator
-    from backend.utils.constants import DIZHI_WUXING, GUA_WUXING
-else:
-    from .ganzhi import get_ganzhi_by_date
-    from .liushen import assign_liushen
-    from .xunkong import mark_xunkong
-    from .shengke import ShengKeCalculator
-    from ..utils.constants import DIZHI_WUXING, GUA_WUXING
+from ..models.gua import BianguaYaoData, GuaData, YaoData
+from ..utils.constants import (
+    DIZHI_WUXING,
+    LIU_CHONG,
+    LIU_HE,
+    SPECIAL_GUA,
+)
+from .ganzhi import get_ganzhi_by_date
+from .liushen import assign_liushen
+from .shengke import ShengKeCalculator
 
-if __name__ == '__main__' and __package__ is None:
-    from backend.models.gua import BianguaYaoData, GuaData, YaoData
-else:
-    from ..models.gua import BianguaYaoData, GuaData, YaoData
+ALL_LIUQIN = {"父母", "兄弟", "官鬼", "妻财", "子孙"}
+PURE_GUA_NAMES = {
+    "乾": "乾为天",
+    "兑": "兑为泽",
+    "离": "离为火",
+    "震": "震为雷",
+    "巽": "巽为风",
+    "坎": "坎为水",
+    "艮": "艮为山",
+    "坤": "坤为地",
+}
+SHENG_SOURCE = {
+    "木": "水",
+    "火": "木",
+    "土": "火",
+    "金": "土",
+    "水": "金",
+}
+KE_SOURCE = {
+    "木": "金",
+    "火": "水",
+    "土": "木",
+    "金": "火",
+    "水": "土",
+}
 
 
 class LiuyaoEngine:
-    """六爻排盘核心引擎（查表法）"""
+    """使用六十四卦查表数据完成排盘。"""
 
-    def __init__(self):
-        # 加载六十四卦全量数据
-        json_path = os.path.join(os.path.dirname(__file__), '..', 'data', '64gua_full.json')
-        if not os.path.exists(json_path):
-            raise FileNotFoundError(f"未找到卦象数据文件：{json_path}，请先运行生成脚本。")
-        with open(json_path, 'r', encoding='utf-8') as f:
-            self.gua_dict = json.load(f)
+    def __init__(self, data_path: Path | None = None) -> None:
+        self.data_path = data_path or (
+            Path(__file__).resolve().parent.parent
+            / "data"
+            / "64gua_full.json"
+        )
+        self.gua_dict = self._load_gua_data(self.data_path)
+        self._gua_by_code = self._build_code_lookup(self.gua_dict)
+        self._gua_by_name = {
+            gua["name"]: gua for gua in self.gua_dict.values()
+        }
         self.shengke_calc = ShengKeCalculator()
 
-    def _find_gua_by_yao_list(self, yao_list: List[int]) -> Dict:
-        code_str = ''.join(str(x) for x in yao_list)
-        for gua_id, gua_info in self.gua_dict.items():
-            gua_code = ''.join(str(yao['yin_yang']) for yao in gua_info['yao_list'])
-            if gua_code == code_str:
-                return gua_info
-        raise ValueError(f"未找到匹配的卦象，阴阳序列：{code_str}")
+    @staticmethod
+    def _load_gua_data(path: Path) -> dict[str, dict[str, Any]]:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"无法加载六十四卦数据：{path}") from exc
+        if not isinstance(data, dict) or len(data) != 64:
+            raise RuntimeError("六十四卦数据必须完整包含 64 卦")
+        return data
 
-    def _find_gong_gua(self, gong_name: str) -> Dict:
-        name_mapping = {
-            '乾': '乾为天', '兑': '兑为泽', '离': '离为火', '震': '震为雷',
-            '巽': '巽为风', '坎': '坎为水', '艮': '艮为山', '坤': '坤为地'
+    @classmethod
+    def _build_code_lookup(
+        cls,
+        gua_dict: Mapping[str, Mapping[str, Any]],
+    ) -> dict[str, Mapping[str, Any]]:
+        lookup: dict[str, Mapping[str, Any]] = {}
+        for gua in gua_dict.values():
+            try:
+                yao_list = gua["yao_list"]
+                code = "".join(
+                    str(yao["yin_yang"]) for yao in yao_list
+                )
+            except (KeyError, TypeError) as exc:
+                raise RuntimeError("六十四卦数据结构无效") from exc
+            if len(code) != 6 or set(code) - {"0", "1"} or code in lookup:
+                raise RuntimeError("六十四卦阴阳编码无效或重复")
+            lookup[code] = gua
+        if len(lookup) != 64:
+            raise RuntimeError("六十四卦阴阳编码不完整")
+        return lookup
+
+    @staticmethod
+    def _validate_yao_list(values: object) -> list[int]:
+        if (
+            not isinstance(values, Sequence)
+            or isinstance(values, (str, bytes))
+            or len(values) != 6
+        ):
+            raise ValueError("yao_list 必须恰好包含六个阴阳值")
+        result = list(values)
+        if any(type(value) is not int or value not in (0, 1) for value in result):
+            raise ValueError("yao_list 只能包含整数 0 或 1")
+        return result
+
+    @staticmethod
+    def _validate_changing_flags(values: object) -> list[bool]:
+        if (
+            not isinstance(values, Sequence)
+            or isinstance(values, (str, bytes))
+            or len(values) != 6
+        ):
+            raise ValueError("changing_yao 必须恰好包含六个标志")
+        result = list(values)
+        if any(type(value) is not bool for value in result):
+            raise ValueError("changing_yao 只能包含布尔值")
+        return result
+
+    @staticmethod
+    def _required_int(
+        source: Mapping[str, object],
+        key: str,
+        default: int | None = None,
+    ) -> int:
+        value = source.get(key, default)
+        if type(value) is not int:
+            raise ValueError(f"{key} 必须是整数")
+        return value
+
+    def _find_gua_by_yao_list(
+        self,
+        yao_list: Sequence[int],
+    ) -> Mapping[str, Any]:
+        code = "".join(str(value) for value in yao_list)
+        try:
+            return self._gua_by_code[code]
+        except KeyError as exc:
+            raise ValueError(f"未找到匹配的卦象：{code}") from exc
+
+    def _find_gong_gua(self, gong_name: str) -> Mapping[str, Any]:
+        try:
+            return self._gua_by_name[PURE_GUA_NAMES[gong_name]]
+        except KeyError as exc:
+            raise ValueError(f"未找到{gong_name}宫本宫卦") from exc
+
+    @staticmethod
+    def _get_fushen_for_yao(
+        ben_yao: Mapping[str, Any],
+        ben_gua: Mapping[str, Any],
+        ben_gong_gua: Mapping[str, Any],
+    ) -> str | None:
+        present = {
+            yao["liuqin"].strip() for yao in ben_gua["yao_list"]
         }
-        pure_name = name_mapping.get(gong_name, f"{gong_name}为{gong_name}")
-        for gua_id, gua_info in self.gua_dict.items():
-            if gua_info['name'] == pure_name:
-                return gua_info
-        for gua_id, gua_info in self.gua_dict.items():
-            if gua_info.get('gong') == gong_name and gua_info.get('shi') == 6:
-                return gua_info
-        raise ValueError(f"未找到宫{gong_name}的本宫卦")
-
-    def _get_fushen_for_yao(self, ben_yao_pre: Dict, ben_gua_info: Dict, ben_gong_gua_info: Dict) -> Optional[str]:
-        """
-        计算某一爻的伏神。
-        规则：
-        1. 若本卦六亲齐全（5种），则所有爻无伏神返回 None。
-        2. 若本卦六亲不全，则仅当本宫同位爻的六亲属于本卦缺失的六亲时，才返回伏神字符串；
-           否则返回 None（前端显示“—”）。
-        """
-        # 本卦实际出现的六亲集合
-        ben_liuqin_set = {yao['liuqin'].strip() for yao in ben_gua_info['yao_list']}
-        all_liuqin = {'父母', '兄弟', '官鬼', '妻财', '子孙'}
-
-        # 六亲齐全 → 无伏神
-        if ben_liuqin_set == all_liuqin:
+        missing = ALL_LIUQIN - present
+        if not missing:
             return None
-
-        # 计算缺失的六亲
-        missing_liuqin = all_liuqin - ben_liuqin_set
-
-        # 本宫同位爻信息
-        pos_index = ben_yao_pre['pos'] - 1
-        gong_yao = ben_gong_gua_info['yao_list'][pos_index]
-        gong_liuqin = gong_yao['liuqin'].strip()
-
-        # 仅当同位爻的六亲是本卦缺失的六亲时，才显示伏神
-        if gong_liuqin in missing_liuqin:
-            gong_dizhi = gong_yao['dizhi']
-            wuxing = DIZHI_WUXING.get(gong_dizhi, '')
-            return f"{gong_liuqin}{gong_dizhi}{wuxing}"
-        else:
+        gong_yao = ben_gong_gua["yao_list"][ben_yao["pos"] - 1]
+        gong_liuqin = gong_yao["liuqin"].strip()
+        if gong_liuqin not in missing:
             return None
+        gong_dizhi = gong_yao["dizhi"]
+        return f"{gong_liuqin}{gong_dizhi}{DIZHI_WUXING[gong_dizhi]}"
 
-    def paipan(self, qigua_result: Dict) -> GuaData:
-        yao_list = qigua_result['yao_list']
-        changing_flags = qigua_result.get('changing_yao', [False] * 6)
-        year = qigua_result['year']
-        month = qigua_result['month']
-        day = qigua_result['day']
-        hour = qigua_result.get('hour', 0)
-        minute = qigua_result.get('minute', 0)
-        second = qigua_result.get('second', 0)
+    def paipan(self, qigua_result: Mapping[str, object]) -> GuaData:
+        """校验起卦输入并返回完整排盘对象。"""
 
-        ganzhi_info = get_ganzhi_by_date(
+        yao_values = self._validate_yao_list(
+            qigua_result.get("yao_list")
+        )
+        changing_flags = self._validate_changing_flags(
+            qigua_result.get("changing_yao", [False] * 6)
+        )
+        year = self._required_int(qigua_result, "year")
+        month = self._required_int(qigua_result, "month")
+        day = self._required_int(qigua_result, "day")
+        hour = self._required_int(qigua_result, "hour", 0)
+        minute = self._required_int(qigua_result, "minute", 0)
+        second = self._required_int(qigua_result, "second", 0)
+
+        full_ganzhi = get_ganzhi_by_date(
             year,
             month,
             day,
@@ -115,205 +192,134 @@ class LiuyaoEngine:
             minute,
             second,
         )
-        day_gan = ganzhi_info['day'][0]
-        xunkong = ganzhi_info['xunkong']
-        ganzhi_info.pop('xunkong', None)
+        xunkong = full_ganzhi["xunkong"]
+        ganzhi = {
+            key: full_ganzhi[key]
+            for key in ("year", "month", "day", "hour")
+        }
+        day_gan = ganzhi["day"][0]
 
-        bian_yao_list = []
-        for i in range(6):
-            if changing_flags[i]:
-                bian_yao_list.append(1 - yao_list[i])
-            else:
-                bian_yao_list.append(yao_list[i])
-
-        ben_gua_info = self._find_gua_by_yao_list(yao_list)
-        bian_gua_info = self._find_gua_by_yao_list(bian_yao_list)
-
-        ben_gua_name = ben_gua_info['name']
-        bian_gua_name = bian_gua_info['name']
-        gong = ben_gua_info['gong']
-        shi_yao = ben_gua_info['shi']
-        ying_yao = ben_gua_info['ying']
-
-        ben_gong_gua_info = self._find_gong_gua(gong)
+        bian_values = [
+            1 - value if changing_flags[index] else value
+            for index, value in enumerate(yao_values)
+        ]
+        ben_gua = self._find_gua_by_yao_list(yao_values)
+        bian_gua = self._find_gua_by_yao_list(bian_values)
+        has_biangua = any(changing_flags)
+        ben_gong_gua = self._find_gong_gua(ben_gua["gong"])
         liushen_list = assign_liushen(day_gan)
 
-        yao_data_list = []
-        for i in range(6):
-            pos = i + 1
-            ben_yao_pre = ben_gua_info['yao_list'][i]
-            ben_yin_yang = ben_yao_pre['yin_yang']
-            ben_dizhi = ben_yao_pre['dizhi']
-            ben_liuqin = ben_yao_pre['liuqin']
-            ben_wuxing = DIZHI_WUXING.get(ben_dizhi, '')
-            is_changing = changing_flags[i]
-            is_kong = (ben_dizhi in xunkong)
-
-            fushen = self._get_fushen_for_yao(ben_yao_pre, ben_gua_info, ben_gong_gua_info)
-
-            biangua_yao = None
-            shengke_relation = ''
-            if is_changing:
-                bian_yao_pre = bian_gua_info['yao_list'][i]
-                bian_dizhi = bian_yao_pre['dizhi']
-                bian_wuxing = DIZHI_WUXING.get(bian_dizhi, '')
-                bian_liuqin = bian_yao_pre['liuqin']
-                bian_is_kong = bian_dizhi in xunkong
-                biangua_yao = BianguaYaoData(
-                    yin_yang=bian_yao_pre['yin_yang'],
-                    dizhi=bian_dizhi,
-                    wuxing=bian_wuxing,
-                    liuqin=bian_liuqin,
-                    is_kong=bian_is_kong
-                )
-                shengke_relation = self._calc_dongbian_relation(
-                    ben_dizhi, ben_wuxing, bian_dizhi, bian_wuxing
-                )
-
-            bian_yao_pre = bian_gua_info['yao_list'][i]
-            bian_dizhi = bian_yao_pre['dizhi']
-            bian_is_kong = bian_dizhi in xunkong
-            biangua_info_data = BianguaYaoData(
-                yin_yang=bian_yao_pre['yin_yang'],
-                dizhi=bian_dizhi,
-                wuxing=DIZHI_WUXING.get(bian_dizhi, ''),
-                liuqin=bian_yao_pre['liuqin'],
-                is_kong=bian_is_kong
+        yao_data_list = [
+            self._build_yao_data(
+                index=index,
+                ben_gua=ben_gua,
+                bian_gua=bian_gua,
+                ben_gong_gua=ben_gong_gua,
+                changing_flags=changing_flags,
+                has_biangua=has_biangua,
+                liushen=liushen_list[index],
+                xunkong=xunkong,
+                ganzhi=ganzhi,
             )
-
-            yao = YaoData(
-                position=pos,
-                yin_yang=ben_yin_yang,
-                is_changing=is_changing,
-                dizhi=ben_dizhi,
-                wuxing=ben_wuxing,
-                liuqin=ben_liuqin,
-                liushen=liushen_list[i],
-                is_kong=is_kong,
-                biangua_yao=biangua_yao,
-                biangua_info=biangua_info_data,
-                shengke=shengke_relation,
-                fushen=fushen
-            )
-
-            # 计算日月冲合暗动
-            ri_zhi = ganzhi_info['day'][1]
-            yue_zhi = ganzhi_info['month'][1]
-            # 计算日月关系（传入完整干支以便取地支）
-            self.shengke_calc.calc_riyue_status(
-                yao,
-                ganzhi_info['day'],  # 日干支，如 '丁巳'
-                ganzhi_info['month']  # 月干支，如 '壬辰'
-            )
-
-            yao_data_list.append(yao)
-
+            for index in range(6)
+        ]
         relations = self.shengke_calc.calc_all_relations_from_yao_list(
-            yao_data_list, ganzhi_info['day'], ganzhi_info['month']
+            yao_data_list,
+            ganzhi["day"],
+            ganzhi["month"],
         )
-
-        # 获取本卦的特殊属性（六冲、六合、归魂、游魂）
-        from backend.utils.constants import SPECIAL_GUA
-        special_attr = SPECIAL_GUA.get(ben_gua_name)
-        bian_special_attr = SPECIAL_GUA.get(bian_gua_name) if bian_gua_name else None
-
+        ben_name = ben_gua["name"]
+        bian_name = bian_gua["name"] if has_biangua else ""
         return GuaData(
-            ben_gua_name=ben_gua_name,
-            bian_gua_name=bian_gua_name if any(changing_flags) else '',
+            ben_gua_name=ben_name,
+            bian_gua_name=bian_name,
             yao_list=yao_data_list,
-            shi_yao=shi_yao,
-            ying_yao=ying_yao,
-            gan_zhi=ganzhi_info,
+            shi_yao=ben_gua["shi"],
+            ying_yao=ben_gua["ying"],
+            gan_zhi=ganzhi,
             xunkong=xunkong,
             relations=relations,
-            special_attr=special_attr,
-            bian_special_attr=bian_special_attr  # 新增
+            special_attr=SPECIAL_GUA.get(ben_name),
+            bian_special_attr=(
+                SPECIAL_GUA.get(bian_name) if has_biangua else None
+            ),
         )
 
-    def _calc_dongbian_relation(self, ben_dizhi: str, ben_wuxing: str,
-                                bian_dizhi: str, bian_wuxing: str) -> str:
-        if (ben_dizhi, bian_dizhi) in self.shengke_calc._get_liuhe_set():
-            return '化合'
-        if (ben_dizhi, bian_dizhi) in self.shengke_calc._get_liuchong_set():
-            return '化冲'
-        if bian_wuxing == self._get_sheng_relation(ben_wuxing):
-            return '回头生'
-        elif bian_wuxing == self._get_ke_relation(ben_wuxing):
-            return '回头克'
-        return ''
+    def _build_yao_data(
+        self,
+        *,
+        index: int,
+        ben_gua: Mapping[str, Any],
+        bian_gua: Mapping[str, Any],
+        ben_gong_gua: Mapping[str, Any],
+        changing_flags: Sequence[bool],
+        has_biangua: bool,
+        liushen: str,
+        xunkong: tuple[str, str],
+        ganzhi: Mapping[str, str],
+    ) -> YaoData:
+        ben_yao = ben_gua["yao_list"][index]
+        bian_yao = bian_gua["yao_list"][index]
+        ben_dizhi = ben_yao["dizhi"]
+        bian_dizhi = bian_yao["dizhi"]
+        is_changing = changing_flags[index]
+        biangua_info = (
+            BianguaYaoData(
+                yin_yang=bian_yao["yin_yang"],
+                dizhi=bian_dizhi,
+                wuxing=DIZHI_WUXING[bian_dizhi],
+                liuqin=bian_yao["liuqin"],
+                is_kong=bian_dizhi in xunkong,
+            )
+            if has_biangua
+            else None
+        )
+        yao = YaoData(
+            position=index + 1,
+            yin_yang=ben_yao["yin_yang"],
+            is_changing=is_changing,
+            dizhi=ben_dizhi,
+            wuxing=DIZHI_WUXING[ben_dizhi],
+            liuqin=ben_yao["liuqin"],
+            liushen=liushen,
+            is_kong=ben_dizhi in xunkong,
+            biangua_info=biangua_info,
+            shengke=(
+                self._calc_dongbian_relation(
+                    ben_dizhi,
+                    DIZHI_WUXING[ben_dizhi],
+                    bian_dizhi,
+                    DIZHI_WUXING[bian_dizhi],
+                )
+                if is_changing
+                else ""
+            ),
+            fushen=self._get_fushen_for_yao(
+                ben_yao,
+                ben_gua,
+                ben_gong_gua,
+            ),
+        )
+        self.shengke_calc.calc_riyue_status(
+            yao,
+            ganzhi["day"],
+            ganzhi["month"],
+        )
+        return yao
 
-    def _get_sheng_relation(self, wuxing: str) -> str:
-        mapping = {'木': '水', '火': '木', '土': '火', '金': '土', '水': '金'}
-        return mapping.get(wuxing, '')
-
-    def _get_ke_relation(self, wuxing: str) -> str:
-        mapping = {'木': '金', '火': '水', '土': '木', '金': '火', '水': '土'}
-        return mapping.get(wuxing, '')
-
-
-# ====================== ShengKeCalculator 补充方法 ======================
-def _ensure_shengke_methods():
-    if not hasattr(ShengKeCalculator, '_get_liuhe_set'):
-        def _get_liuhe_set(self):
-            from backend.utils.constants import LIU_HE
-            return LIU_HE
-        ShengKeCalculator._get_liuhe_set = _get_liuhe_set
-
-    if not hasattr(ShengKeCalculator, '_get_liuchong_set'):
-        def _get_liuchong_set(self):
-            from backend.utils.constants import LIU_CHONG
-            return LIU_CHONG
-        ShengKeCalculator._get_liuchong_set = _get_liuchong_set
-
-    if not hasattr(ShengKeCalculator, 'calc_all_relations_from_yao_list'):
-        def calc_all_relations_from_yao_list(self, yao_list, day_ganzhi, month_ganzhi):
-            dizhi_list = [yao.dizhi for yao in yao_list]
-            liuhe = self.find_liuhe(yao_list)
-            liuchong = self.find_liuchong(yao_list)
-            sanhe = self.find_sanhe(yao_list)
-            shengwangmujue = []
-            for yao in yao_list:
-                status = self.calc_shengwangmujue_for_yao(yao.wuxing, yao.dizhi, day_ganzhi, month_ganzhi)
-                shengwangmujue.append(status)
-            # 新增生旺墓绝详情
-            shengwangmujue_details = self.calc_shengwangmujue_details(yao_list, day_ganzhi)
-            return {
-                'liuhe': liuhe,
-                'liuchong': liuchong,
-                'sanhe': sanhe,
-                'shengwangmujue': shengwangmujue,
-                'shengwangmujue_details': shengwangmujue_details
-            }
-        ShengKeCalculator.calc_all_relations_from_yao_list = calc_all_relations_from_yao_list
-
-_ensure_shengke_methods()
-
-
-
-# ====================== 测试 ======================
-if __name__ == '__main__':
-    test_qigua = {
-        'yao_list': [1, 0, 1, 0, 0, 1],
-        'changing_yao': [False, False, False, True, False, False],
-        'year': 2026,
-        'month': 4,
-        'day': 23,
-        'hour': 10
-    }
-
-    engine = LiuyaoEngine()
-    result = engine.paipan(test_qigua)
-
-    print(f"本卦：{result.ben_gua_name}")
-    print(f"变卦：{result.bian_gua_name}")
-    print(f"世爻：{result.shi_yao}  应爻：{result.ying_yao}")
-    print(f"干支：年{result.gan_zhi['year']} 月{result.gan_zhi['month']} 日{result.gan_zhi['day']} 时{result.gan_zhi['hour']}")
-    print(f"旬空：{result.xunkong}")
-    print("\n爻位详情（从上爻到初爻）：")
-    for yao in reversed(result.yao_list):
-        print(f"  {yao.position}爻：{yao.liushen} {yao.liuqin} {yao.dizhi} {'○' if yao.is_changing else ''} {'(空)' if yao.is_kong else ''} 伏神：{yao.fushen or '—'}")
-        if yao.biangua_yao:
-            print(f"      变：{yao.biangua_yao.liuqin} {yao.biangua_yao.dizhi} {yao.shengke}")
-    print("\n六合：", result.relations['liuhe'])
-    print("六冲：", result.relations['liuchong'])
-    print("三合：", result.relations['sanhe'])
+    @staticmethod
+    def _calc_dongbian_relation(
+        ben_dizhi: str,
+        ben_wuxing: str,
+        bian_dizhi: str,
+        bian_wuxing: str,
+    ) -> str:
+        if (ben_dizhi, bian_dizhi) in LIU_HE:
+            return "化合"
+        if (ben_dizhi, bian_dizhi) in LIU_CHONG:
+            return "化冲"
+        if bian_wuxing == SHENG_SOURCE[ben_wuxing]:
+            return "回头生"
+        if bian_wuxing == KE_SOURCE[ben_wuxing]:
+            return "回头克"
+        return ""

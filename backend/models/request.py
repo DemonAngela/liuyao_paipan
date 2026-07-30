@@ -1,9 +1,9 @@
-"""
-请求数据模型
-"""
-from pydantic import BaseModel
-from typing import List
+"""兼容旧导入路径的起卦请求模型导出。"""
 
-class QiguaRequest(BaseModel):
-    method: str  # auto, manual, specify, time
-    yao_values: List[int] = []  # 手工指定时的阴阳值
+from .gua import QiguaRequest, SpecifyQiguaRequest, TimeQiguaRequest
+
+__all__ = [
+    "QiguaRequest",
+    "SpecifyQiguaRequest",
+    "TimeQiguaRequest",
+]

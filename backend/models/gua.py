@@ -162,7 +162,6 @@ class YaoData:
     liuqin: str = ""
     liushen: str = ""
     is_kong: bool = False
-    biangua_yao: BianguaYaoData | None = None
     biangua_info: BianguaYaoData | None = None
     shengke: str = ""
     fushen: str | None = None
@@ -222,7 +221,6 @@ class YaoDataModel(AttributeModel):
     liuqin: str
     liushen: str
     is_kong: bool
-    biangua_yao: BianguaYaoDataModel | None = None
     biangua_info: BianguaYaoDataModel | None = None
     shengke: str = ""
     fushen: str | None = None

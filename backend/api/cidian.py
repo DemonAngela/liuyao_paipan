@@ -1,48 +1,56 @@
-"""
-卦辞爻辞 API 路由
-"""
+"""卦辞、爻辞 API。"""
 
-import json
-import os
+from __future__ import annotations
+
+from pathlib import Path as FilePath
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException
+from fastapi import Path as PathParam
+from pydantic import BaseModel, ConfigDict
+
+from ..core.guaci import GuaciManager
+
+
+class GuaciResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    name: str
+    gua_ci: str
+    tuan_ci: str
+    xiang_ci: str
+
+
+class YaociResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    yao_ci: str
+
 
 router = APIRouter(prefix="/api", tags=["卦辞爻辞"])
-
-# 加载数据文件
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
-
-def load_json(filename):
-    path = os.path.join(DATA_DIR, filename)
-    if not os.path.exists(path):
-        return {}
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-GUACI_DATA = load_json("64gua.json")
-YAOCI_DATA = load_json("yaoci.json")
+manager = GuaciManager(FilePath(__file__).resolve().parent.parent / "data")
 
 
-@router.get("/guaci/{gua_id}")
-async def get_guaci(gua_id: int):
-    """获取指定卦的卦辞"""
-    gua = GUACI_DATA.get(str(gua_id))
-    if not gua:
-        raise HTTPException(status_code=404, detail="卦不存在")
-    return {
-        "name": gua.get("name", ""),
-        "gua_ci": gua.get("gua_ci", ""),
-        "tuan_ci": gua.get("tuan_ci", ""),
-        "xiang_ci": gua.get("xiang_ci", "")
-    }
+@router.get("/guaci/{gua_id}", response_model=GuaciResponse)
+async def get_guaci(
+    gua_id: Annotated[int, PathParam(ge=1, le=64)],
+) -> dict[str, str]:
+    """获取指定卦的卦辞。"""
+
+    try:
+        return manager.load_guaci(gua_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="卦不存在") from exc
 
 
-@router.get("/yaoci/{gua_id}/{yao_pos}")
-async def get_yaoci(gua_id: int, yao_pos: int):
-    """获取指定卦指定爻的爻辞"""
-    gua = YAOCI_DATA.get(str(gua_id))
-    if not gua:
-        raise HTTPException(status_code=404, detail="卦不存在")
-    yao = gua.get(str(yao_pos))
-    if not yao:
-        raise HTTPException(status_code=404, detail="爻位不存在")
-    return {"yao_ci": yao}
+@router.get("/yaoci/{gua_id}/{yao_pos}", response_model=YaociResponse)
+async def get_yaoci(
+    gua_id: Annotated[int, PathParam(ge=1, le=64)],
+    yao_pos: Annotated[int, PathParam(ge=1, le=6)],
+) -> dict[str, str]:
+    """获取指定卦指定爻的爻辞。"""
+
+    try:
+        return {"yao_ci": manager.load_yaoci(gua_id, yao_pos)}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="卦或爻位不存在") from exc
