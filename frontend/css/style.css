@@ -309,7 +309,8 @@ button:disabled {
 /* 表格样式 */
 .yao-table {
     width: 100%;
-    min-width: 780px;
+    min-width: 820px;
+    table-layout: fixed;
     border-collapse: collapse;
     background: white;
     border-radius: 12px;
@@ -340,9 +341,9 @@ button:disabled {
 }
 
 .yao-table td {
-    padding: 10px 8px;
+    padding: 9px 7px;
     text-align: center;
-    vertical-align: top;
+    vertical-align: middle;
     border-bottom: 1px solid #e0d6cc;
     white-space: nowrap;
 }
@@ -352,12 +353,12 @@ button:disabled {
 }
 
 .yao-table .shi-yao {
-    background: #f7f1e8;
+    background: #fdf3e0;
     font-weight: bold;
 }
 
 .yao-table .ying-yao {
-    background: #f3f0eb;
+    background: #f0ebe4;
 }
 
 .kong-sign {
@@ -472,11 +473,10 @@ button:disabled {
 .header-yongshen-selector {
     justify-content: flex-end;
     margin-left: auto;
-    padding: 6px 8px;
-    border: 1px solid #ded3c6;
-    border-radius: 16px;
-    background: #f5f1eb;
-    box-shadow: 0 1px 3px rgba(74, 55, 34, 0.05);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
 }
 .yongshen-label {
     font-weight: bold;
@@ -529,37 +529,39 @@ button:disabled {
     margin-bottom: 10px;
 }
 
-/* 爻状态与动化标签：贴近对应卦爻，避免视线跨列 */
+/* 卦爻主信息：沿用主分支的紧凑行高，状态就地横排 */
 .gua-cell {
     min-width: 0;
 }
 
 .gua-line-main {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
     color: #3f3327;
-    font-weight: 600;
-    line-height: 1.45;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .ben-main {
-    position: relative;
-    display: flex;
-    min-height: 38px;
-    padding-top: 18px;
-    align-items: center;
-    justify-content: center;
+    min-height: 0;
+    padding: 0;
 }
 
 .fushen-cell {
-    position: relative;
-    padding-top: 28px !important;
+    padding-top: 9px !important;
 }
 
 .status-lines {
-    display: grid;
-    width: fit-content;
+    display: flex;
+    width: auto;
     min-width: 0;
-    margin: 5px auto 0;
-    gap: 2px;
+    margin: 3px 0 0;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px 9px;
 }
 
 .status-meta,
@@ -574,16 +576,16 @@ button:disabled {
 }
 
 .status-row {
-    display: grid;
-    grid-template-columns: 18px minmax(0, 1fr);
-    align-items: start;
+    display: inline-flex;
+    align-items: baseline;
     gap: 3px;
-    line-height: 1.35;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .status-source {
     color: #7a6957;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
 }
 
@@ -599,70 +601,81 @@ button:disabled {
 }
 
 .status-token {
-    background: #f0ece6;
-    color: #62584d;
-    font-size: 0.7rem;
-    padding: 1px 5px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #756a5f;
+    font-size: 0.68rem;
 }
 
 .status-token.warning {
-    background: rgba(155, 94, 76, 0.1);
-    color: #805248;
+    background: transparent;
+    color: #98594c;
 }
 
 .status-token.support {
-    background: rgba(102, 124, 99, 0.11);
-    color: #526450;
+    background: transparent;
+    color: #57705a;
 }
 
 .status-role {
     font-weight: 700;
     color: #5a3e1b;
+    font-size: 0.72rem;
 }
 
 .status-move {
     color: #855345;
     font-weight: 700;
+    font-size: 0.72rem;
 }
 
 .bian-main {
-    min-height: 20px;
+    min-height: 0;
 }
 
 .bian-main.is-changing {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .bian-status {
-    display: grid;
-    margin-top: 5px;
+    display: flex;
+    margin-top: 3px;
     color: #776a5b;
-    font-size: 0.7rem;
-    line-height: 1.35;
+    font-size: 0.68rem;
+    line-height: 1.2;
     white-space: normal;
 }
 
 .transform-tags {
     justify-content: center;
-    max-width: 190px;
-    margin: 6px auto 0;
+    max-width: none;
+    margin: 3px 0 0;
 }
 
 .transform-tag {
-    background: #f0ece6;
-    color: #62584d;
-    font-size: 0.7rem;
-    padding: 1px 6px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #6c6155;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.transform-tag + .transform-tag::before {
+    margin-right: 4px;
+    color: #b6aa9d;
+    content: "·";
 }
 
 .transform-tag.support {
-    background: rgba(102, 124, 99, 0.11);
-    color: #526450;
+    background: transparent;
+    color: #57705a;
 }
 
 .transform-tag.warning {
-    background: rgba(155, 94, 76, 0.1);
-    color: #805248;
+    background: transparent;
+    color: #98594c;
 }
 
 /* 分区解卦辅助 */
@@ -937,29 +950,26 @@ button:disabled {
     color: #725431;
 }
 
-/* 四神标记：保留卦行原色，仅用低饱和标签和左侧细线提示 */
-.yao-table tbody tr.has-role-marker td:first-child {
-    box-shadow: inset 3px 0 0 rgba(112, 94, 73, 0.25);
-}
-
+/* 四神标记：紧贴六亲横排，不改变卦行底色与高度 */
 .yao-role-marker {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: 4px;
-    padding: 1px 6px;
+    gap: 3px;
+    padding: 1px 5px;
     border: 1px solid currentColor;
     border-radius: 999px;
-    font-size: 0.62rem;
+    font-size: 0.64rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    line-height: 1.35;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
     white-space: nowrap;
     animation: role-marker-enter 0.36s ease-out both;
 }
 
 .yao-role-marker::before {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background: currentColor;
     content: "";
@@ -968,14 +978,12 @@ button:disabled {
 
 .ben-main > .yao-role-marker,
 .fushen-cell > .yao-role-marker {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    position: static;
+    transform: none;
 }
 
 .fushen-cell > .yao-role-marker {
-    top: 7px;
+    margin-right: 4px;
 }
 
 .marker-yongshen {
