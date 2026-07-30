@@ -47,7 +47,7 @@
     `requirements*.txt`、`requirements*.lock`、`.github/workflows/`、
     `backend/data/generate_64gua_table.py`、`backend/data/64gua_full.json`、
     `init_project.py`、`README.md`、`docs/ARCHITECTURE.md`；删除空校验器、
-    误导性启停脚本及生成器备份文件。
+    生成器备份文件，并重写原一键启停入口。
 - 验证结果：
   - 第一阶段 25 项历法、梅花起卦、概率映射和 API 契约测试通过。
   - 第一阶段新增/重写文件 Ruff 检查通过，`git diff --check` 通过。
@@ -67,6 +67,8 @@
     固定为 UTF-8/LF 并通过原子替换写入目标文件。
   - Windows PowerShell 5.1 已通过服务启动、状态查询、HTTP 健康检查、
     PID/启动时间身份校验停止及状态文件清理。
+  - `liuyao_start&stop.bat` 已通过未运行时一键启动、健康检查及运行中
+    一键停止测试；批处理统一为 Windows `cmd.exe` 稳定解析的 ASCII/CRLF。
   - 修复分支已推送到 `origin/fix/comprehensive-review-remediation`；
     远程 CI 运行 `30540057463` 在提交 `b8af60b` 上成功且注解数为 0。
   - GitHub Actions 已升级至最新 v7 并固定完整提交 SHA，标签发布工作流

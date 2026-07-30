@@ -46,6 +46,13 @@ py -3.13 -m venv venv
 Windows 双击或执行：
 
 ```powershell
+& '.\liuyao_start&stop.bat'
+```
+
+该入口会自动检测状态：服务未运行时启动并打开页面，服务运行时停止。也可
+分别执行：
+
+```powershell
 .\start.bat
 .\stop.bat
 ```
