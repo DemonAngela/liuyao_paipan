@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -150,6 +150,8 @@ class BianguaYaoData:
     wuxing: str
     liuqin: str
     is_kong: bool = False
+    day_relations: list[str] = field(default_factory=list)
+    month_relations: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -180,6 +182,9 @@ class YaoData:
     is_yuepo: bool = False
     ri_lin: bool = False
     yue_lin: bool = False
+    day_relations: list[str] = field(default_factory=list)
+    month_relations: list[str] = field(default_factory=list)
+    transformation_relations: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -192,6 +197,7 @@ class GuaData:
     gan_zhi: dict[str, str]
     xunkong: tuple[str, str]
     relations: dict[str, Any]
+    analysis: dict[str, Any] | None = None
     special_attr: str | None = None
     bian_special_attr: str | None = None
 
@@ -210,6 +216,8 @@ class BianguaYaoDataModel(AttributeModel):
     wuxing: str
     liuqin: str
     is_kong: bool = False
+    day_relations: list[str] = Field(default_factory=list)
+    month_relations: list[str] = Field(default_factory=list)
 
 
 class YaoDataModel(AttributeModel):
@@ -239,6 +247,9 @@ class YaoDataModel(AttributeModel):
     is_yuepo: bool = False
     ri_lin: bool = False
     yue_lin: bool = False
+    day_relations: list[str] = Field(default_factory=list)
+    month_relations: list[str] = Field(default_factory=list)
+    transformation_relations: list[str] = Field(default_factory=list)
 
 
 class GanZhiModel(StrictModel):
@@ -268,6 +279,73 @@ class RelationsModel(StrictModel):
     shengwangmujue_details: list[str]
 
 
+class AnalysisFindingModel(StrictModel):
+    category: str
+    title: str
+    detail: str
+    positions: list[Annotated[int, Field(ge=1, le=6)]] = Field(
+        default_factory=list
+    )
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+class RuleTraceModel(StrictModel):
+    rule_id: str
+    category: str
+    title: str
+    source: str
+    source_text: str
+    source_url: str
+    confidence: Literal["明确规则", "条件提示"]
+
+
+class YongshenCandidateModel(StrictModel):
+    position: Annotated[int, Field(ge=1, le=6)]
+    dizhi: str
+    wuxing: str
+    is_hidden: bool
+    activity: str
+    statuses: list[str] = Field(default_factory=list)
+
+
+class YongshenRoleModel(StrictModel):
+    role: Literal["用神", "元神", "忌神", "仇神"]
+    liuqin: str
+    relationship: str
+    candidates: list[YongshenCandidateModel] = Field(default_factory=list)
+
+
+class TimingHintModel(StrictModel):
+    trigger: str
+    detail: str
+    branches: list[str]
+    positions: list[Annotated[int, Field(ge=1, le=6)]] = Field(
+        default_factory=list
+    )
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+class YongshenProfileModel(StrictModel):
+    yongshen: str
+    summary: str
+    roles: list[YongshenRoleModel]
+    timing_hints: list[TimingHintModel] = Field(default_factory=list)
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+class InterpretationModel(StrictModel):
+    version: str
+    notice: str
+    transformation_findings: list[AnalysisFindingModel] = Field(
+        default_factory=list
+    )
+    structure_findings: list[AnalysisFindingModel] = Field(
+        default_factory=list
+    )
+    yongshen_profiles: dict[str, YongshenProfileModel]
+    rule_traces: list[RuleTraceModel]
+
+
 class GuaDataModel(AttributeModel):
     """完整排盘响应。"""
 
@@ -279,5 +357,6 @@ class GuaDataModel(AttributeModel):
     gan_zhi: GanZhiModel
     xunkong: tuple[str, str]
     relations: RelationsModel
+    analysis: InterpretationModel | None = None
     special_attr: str | None = None
     bian_special_attr: str | None = None

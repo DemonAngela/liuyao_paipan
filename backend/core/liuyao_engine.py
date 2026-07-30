@@ -14,13 +14,16 @@ from typing import Any
 from ..models.gua import BianguaYaoData, GuaData, YaoData
 from ..utils.constants import (
     DIZHI_WUXING,
-    LIU_CHONG,
-    LIU_HE,
     SPECIAL_GUA,
 )
 from .ganzhi import get_ganzhi_by_date
+from .interpretation import (
+    build_interpretation,
+    calculate_transformation_relations,
+)
+from .liuqin import assign_liuqin
 from .liushen import assign_liushen
-from .shengke import ShengKeCalculator
+from .shengke import ShengKeCalculator, branch_riyue_relations
 
 ALL_LIUQIN = {"父母", "兄弟", "官鬼", "妻财", "子孙"}
 PURE_GUA_NAMES = {
@@ -33,22 +36,6 @@ PURE_GUA_NAMES = {
     "艮": "艮为山",
     "坤": "坤为地",
 }
-SHENG_SOURCE = {
-    "木": "水",
-    "火": "木",
-    "土": "火",
-    "金": "土",
-    "水": "金",
-}
-KE_SOURCE = {
-    "木": "金",
-    "火": "水",
-    "土": "木",
-    "金": "火",
-    "水": "土",
-}
-
-
 class LiuyaoEngine:
     """使用六十四卦查表数据完成排盘。"""
 
@@ -230,6 +217,19 @@ class LiuyaoEngine:
         )
         ben_name = ben_gua["name"]
         bian_name = bian_gua["name"] if has_biangua else ""
+        special_attr = SPECIAL_GUA.get(ben_name)
+        bian_special_attr = (
+            SPECIAL_GUA.get(bian_name) if has_biangua else None
+        )
+        analysis = build_interpretation(
+            ben_gua=ben_gua,
+            bian_gua=bian_gua if has_biangua else None,
+            yao_list=yao_data_list,
+            ganzhi=ganzhi,
+            xunkong=xunkong,
+            special_attr=special_attr,
+            bian_special_attr=bian_special_attr,
+        )
         return GuaData(
             ben_gua_name=ben_name,
             bian_gua_name=bian_name,
@@ -239,10 +239,9 @@ class LiuyaoEngine:
             gan_zhi=ganzhi,
             xunkong=xunkong,
             relations=relations,
-            special_attr=SPECIAL_GUA.get(ben_name),
-            bian_special_attr=(
-                SPECIAL_GUA.get(bian_name) if has_biangua else None
-            ),
+            analysis=analysis,
+            special_attr=special_attr,
+            bian_special_attr=bian_special_attr,
         )
 
     def _build_yao_data(
@@ -263,13 +262,33 @@ class LiuyaoEngine:
         ben_dizhi = ben_yao["dizhi"]
         bian_dizhi = bian_yao["dizhi"]
         is_changing = changing_flags[index]
+        bian_status = branch_riyue_relations(
+            bian_dizhi,
+            ganzhi["day"][1],
+            ganzhi["month"][1],
+        )
+        transformation_relations = (
+            calculate_transformation_relations(
+                ben_dizhi,
+                bian_dizhi,
+                xunkong=xunkong,
+                month_zhi=ganzhi["month"][1],
+            )
+            if is_changing
+            else []
+        )
         biangua_info = (
             BianguaYaoData(
                 yin_yang=bian_yao["yin_yang"],
                 dizhi=bian_dizhi,
                 wuxing=DIZHI_WUXING[bian_dizhi],
-                liuqin=bian_yao["liuqin"],
+                liuqin=assign_liuqin(
+                    str(ben_gua["gong"]),
+                    [bian_dizhi],
+                )[0],
                 is_kong=bian_dizhi in xunkong,
+                day_relations=bian_status["day"],
+                month_relations=bian_status["month"],
             )
             if has_biangua
             else None
@@ -284,21 +303,13 @@ class LiuyaoEngine:
             liushen=liushen,
             is_kong=ben_dizhi in xunkong,
             biangua_info=biangua_info,
-            shengke=(
-                self._calc_dongbian_relation(
-                    ben_dizhi,
-                    DIZHI_WUXING[ben_dizhi],
-                    bian_dizhi,
-                    DIZHI_WUXING[bian_dizhi],
-                )
-                if is_changing
-                else ""
-            ),
+            shengke="、".join(transformation_relations),
             fushen=self._get_fushen_for_yao(
                 ben_yao,
                 ben_gua,
                 ben_gong_gua,
             ),
+            transformation_relations=transformation_relations,
         )
         self.shengke_calc.calc_riyue_status(
             yao,
@@ -306,20 +317,3 @@ class LiuyaoEngine:
             ganzhi["month"],
         )
         return yao
-
-    @staticmethod
-    def _calc_dongbian_relation(
-        ben_dizhi: str,
-        ben_wuxing: str,
-        bian_dizhi: str,
-        bian_wuxing: str,
-    ) -> str:
-        if (ben_dizhi, bian_dizhi) in LIU_HE:
-            return "化合"
-        if (ben_dizhi, bian_dizhi) in LIU_CHONG:
-            return "化冲"
-        if bian_wuxing == SHENG_SOURCE[ben_wuxing]:
-            return "回头生"
-        if bian_wuxing == KE_SOURCE[ben_wuxing]:
-            return "回头克"
-        return ""

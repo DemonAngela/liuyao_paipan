@@ -74,12 +74,28 @@ def test_sanhe_accepts_two_moving_base_branches():
     ]
 
 
-def test_sanhe_accepts_inner_changed_branch():
+def test_sanhe_rejects_inner_changed_branch_when_other_boundary_is_static():
     calculator = ShengKeCalculator()
     yaos = [
         make_yao(1, "申", changing=True, bian_dizhi="子"),
         make_yao(2, "丑"),
         make_yao(3, "辰"),
+        make_yao(4, "卯"),
+        make_yao(5, "巳"),
+        make_yao(6, "未"),
+    ]
+
+    result = calculator.find_sanhe(yaos)
+
+    assert result == []
+
+
+def test_sanhe_accepts_inner_changed_branch_when_both_boundaries_move():
+    calculator = ShengKeCalculator()
+    yaos = [
+        make_yao(1, "申", changing=True, bian_dizhi="子"),
+        make_yao(2, "丑"),
+        make_yao(3, "辰", changing=True, bian_dizhi="午"),
         make_yao(4, "卯"),
         make_yao(5, "巳"),
         make_yao(6, "未"),
@@ -158,6 +174,18 @@ def test_day_clash_distinguishes_hidden_move_and_break():
     assert month_broken.is_yuepo is True
 
 
+def test_book_example_earth_day_clash_is_hidden_move():
+    calculator = ShengKeCalculator()
+    earth = make_yao(1, "丑")
+
+    calculator.calc_riyue_status(earth, "己未", "甲寅")
+
+    assert earth.is_andong is True
+    assert earth.is_ripo is False
+    assert earth.day_relations == ["日扶", "日冲", "暗动"]
+    assert earth.month_relations == ["月克"]
+
+
 def test_month_is_included_in_shengwangmujue_details():
     calculator = ShengKeCalculator()
     yaos = [
@@ -176,4 +204,3 @@ def test_month_is_included_in_shengwangmujue_details():
     )
 
     assert any("[初爻酉金]长生在巳[月建巳火]" == item for item in details)
-

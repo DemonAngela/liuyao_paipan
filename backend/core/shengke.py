@@ -56,6 +56,47 @@ POSITION_NAMES = {
 }
 
 
+def branch_riyue_relations(
+    dizhi: str,
+    ri_zhi: str,
+    yue_zhi: str,
+) -> dict[str, list[str]]:
+    """返回地支与日建、月建可同时成立的原始关系。"""
+
+    for value, label in (
+        (dizhi, "爻支"),
+        (ri_zhi, "日支"),
+        (yue_zhi, "月支"),
+    ):
+        if value not in DIZHI_WUXING:
+            raise ValueError(f"{label}无效")
+
+    yao_wuxing = DIZHI_WUXING[dizhi]
+
+    def describe(prefix: str, source_zhi: str) -> list[str]:
+        source_wuxing = DIZHI_WUXING[source_zhi]
+        result: list[str] = []
+        if dizhi == source_zhi:
+            result.append(f"值{prefix}")
+        elif yao_wuxing == source_wuxing:
+            result.append(f"{prefix}扶")
+        if (dizhi, source_zhi) in LIU_HE:
+            result.append(f"{prefix}合")
+        if (dizhi, source_zhi) in LIU_CHONG:
+            result.append(f"{prefix}冲")
+        if (source_wuxing, yao_wuxing) in WUXING_SHENG:
+            result.append(f"{prefix}生")
+        if (source_wuxing, yao_wuxing) in WUXING_KE:
+            result.append(f"{prefix}克")
+        return result
+
+    day = describe("日", ri_zhi)
+    month = describe("月", yue_zhi)
+    if (dizhi, yue_zhi) in LIU_CHONG:
+        month.append("月破")
+    return {"day": day, "month": month}
+
+
 class ShengKeCalculator:
     """计算排盘结果中的动态关系。"""
 
@@ -173,42 +214,51 @@ class ShengKeCalculator:
             )
 
         for first_pos, second_pos in ((1, 3), (4, 6)):
-            for moving_pos, static_pos in (
-                (first_pos, second_pos),
-                (second_pos, first_pos),
-            ):
-                moving = yao_list[moving_pos - 1]
-                static = yao_list[static_pos - 1]
-                if not moving.is_changing or moving.biangua_info is None:
+            boundary_yaos = (
+                yao_list[first_pos - 1],
+                yao_list[second_pos - 1],
+            )
+            if not all(self._is_moving(yao) for yao in boundary_yaos):
+                continue
+
+            available: list[dict[str, Any]] = []
+            for yao in boundary_yaos:
+                available.append(
+                    {
+                        "pos": yao.position,
+                        "dizhi": yao.dizhi,
+                        "is_bian": False,
+                    }
+                )
+                if yao.is_changing and yao.biangua_info is not None:
+                    available.append(
+                        {
+                            "pos": yao.position,
+                            "dizhi": yao.biangua_info.dizhi,
+                            "is_bian": True,
+                            "src_pos": yao.position,
+                        }
+                    )
+
+            for selected in combinations(available, 3):
+                if len({item["pos"] for item in selected}) != 2:
                     continue
-                candidates = [
-                    {
-                        "pos": moving.position,
-                        "dizhi": moving.dizhi,
-                        "is_bian": False,
-                    },
-                    {
-                        "pos": moving.position,
-                        "dizhi": moving.biangua_info.dizhi,
-                        "is_bian": True,
-                        "src_pos": moving.position,
-                    },
-                    {
-                        "pos": static.position,
-                        "dizhi": static.dizhi,
-                        "is_bian": False,
-                    },
-                ]
                 wuxing = self._match_sanhe(
-                    [item["dizhi"] for item in candidates]
+                    [item["dizhi"] for item in selected]
                 )
                 if wuxing is None:
                     continue
                 key = (
                     "动化",
                     wuxing,
-                    moving.position,
-                    static.position,
+                    *sorted(
+                        (
+                            item["pos"],
+                            item["dizhi"],
+                            item["is_bian"],
+                        )
+                        for item in selected
+                    ),
                 )
                 if key in seen:
                     continue
@@ -218,7 +268,7 @@ class ShengKeCalculator:
                         "wuxing": wuxing,
                         "items": self._ordered_sanhe_items(
                             wuxing,
-                            candidates,
+                            selected,
                         ),
                     }
                 )
@@ -419,6 +469,13 @@ class ShengKeCalculator:
         yao.yue_sheng = (yue_wuxing, yao.wuxing) in WUXING_SHENG
         yao.yue_ke = (yue_wuxing, yao.wuxing) in WUXING_KE
         yao.is_yuepo = yao.yue_chong
+        relations = branch_riyue_relations(
+            yao.dizhi,
+            ri_zhi,
+            yue_zhi,
+        )
+        yao.day_relations = relations["day"]
+        yao.month_relations = relations["month"]
 
         yao.is_andong = False
         yao.is_ripo = False
@@ -427,7 +484,13 @@ class ShengKeCalculator:
                 yao.wuxing,
                 yue_zhi,
             )
-            if not yao.is_yuepo and month_supported:
+            day_same_element = ri_wuxing == yao.wuxing
+            if (
+                not yao.is_yuepo
+                and (month_supported or day_same_element)
+            ):
                 yao.is_andong = True
+                yao.day_relations.append("暗动")
             else:
                 yao.is_ripo = True
+                yao.day_relations.append("日破")
