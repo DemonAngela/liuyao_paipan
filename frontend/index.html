@@ -114,9 +114,26 @@
             <!-- 起卦时间信息 -->
             <div id="time-info" class="time-info"></div>
 
-            <!-- 顶部日月干支 -->
+            <!-- 顶部日月干支与用神选择 -->
             <div id="header-row" class="header-row">
                 <!-- 日月干支动态插入此处 -->
+                <div id="yongshen-selector"
+                     class="yongshen-selector header-yongshen-selector"
+                     role="group" aria-label="选择用神">
+                    <span class="yongshen-label">取用</span>
+                    <button type="button" class="yongshen-btn" data-yongshen="官鬼"
+                            aria-pressed="false">官鬼</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="父母"
+                            aria-pressed="false">父母</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="兄弟"
+                            aria-pressed="false">兄弟</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="子孙"
+                            aria-pressed="false">子孙</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="妻财"
+                            aria-pressed="false">妻财</button>
+                    <button type="button" class="yongshen-btn yongshen-clear"
+                            data-yongshen="">清除</button>
+                </div>
             </div>
 
             <!-- 卦名与世应 -->
@@ -130,16 +147,14 @@
             <div class="yao-table-scroll" tabindex="0"
                  aria-label="六爻排盘表，可横向滚动">
                 <table id="yao-table" class="yao-table">
-                    <caption class="sr-only">六爻本卦、变卦及生克关系</caption>
+                    <caption class="sr-only">六爻本卦、变卦、日月状态及动化关系</caption>
                     <thead>
                         <tr>
                             <th>爻位</th>
                             <th>六神</th>
                             <th>伏神</th>
                             <th>本卦</th>
-                            <th>状态</th>
                             <th>变卦</th>
-                            <th>关系</th>
                         </tr>
                     </thead>
                     <tbody id="yao-tbody">
@@ -172,23 +187,8 @@
                          aria-labelledby="yongshen-title">
                     <div class="analysis-card-header">
                         <div>
-                            <h3 id="yongshen-title">取用分析</h3>
-                            <p>请按占问选择主事六亲，再查看四神与应期线索。</p>
-                        </div>
-                        <div id="yongshen-selector" class="yongshen-selector"
-                             role="group" aria-label="选择用神">
-                            <span class="yongshen-label">用神</span>
-                            <button type="button" class="yongshen-btn" data-yongshen="官鬼"
-                                    aria-pressed="false">官鬼</button>
-                            <button type="button" class="yongshen-btn" data-yongshen="父母"
-                                    aria-pressed="false">父母</button>
-                            <button type="button" class="yongshen-btn" data-yongshen="兄弟"
-                                    aria-pressed="false">兄弟</button>
-                            <button type="button" class="yongshen-btn" data-yongshen="子孙"
-                                    aria-pressed="false">子孙</button>
-                            <button type="button" class="yongshen-btn" data-yongshen="妻财"
-                                    aria-pressed="false">妻财</button>
-                            <button type="button" class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
+                            <h3 id="yongshen-title">四神与作用链</h3>
+                            <p>用神可在排盘右上角随时切换。</p>
                         </div>
                     </div>
                     <p id="yongshen-summary" class="analysis-empty">
