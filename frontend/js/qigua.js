@@ -1,213 +1,277 @@
-// 全局状态
 let currentMethod = 'auto';
 let manualYaos = [];
 let currentManualIndex = 0;
+let manualSessionId = 0;
 let specifyYaos = [];
 
-function initQiguaUI() {
-    document.getElementById('btn-auto').addEventListener('click', ()=>switchMethod('auto'));
-    document.getElementById('btn-manual').addEventListener('click', ()=>switchMethod('manual'));
-    document.getElementById('btn-specify').addEventListener('click', ()=>switchMethod('specify'));
-    document.getElementById('btn-time').addEventListener('click', ()=>switchMethod('time'));
+function setStatus(message = '', type = 'info') {
+    const status = document.getElementById('app-status');
+    status.textContent = message;
+    status.className = `app-status ${type}`;
+}
 
-    document.getElementById('btn-start-auto').addEventListener('click', autoQigua);
-    document.getElementById('btn-shake').addEventListener('click', manualShake);
-    document.getElementById('btn-reset-manual').addEventListener('click', resetManual);
-    document.getElementById('btn-start-time').addEventListener('click', timeQigua);
+async function runAction(button, loadingMessage, successMessage, action) {
+    if (button.disabled) {
+        return;
+    }
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    setStatus(loadingMessage, 'loading');
+    try {
+        const outcome = await action();
+        if (outcome?.message) {
+            setStatus(outcome.message, outcome.type || 'success');
+        } else {
+            setStatus(successMessage, 'success');
+        }
+    } catch (error) {
+        setStatus(error.message || '操作失败，请稍后重试', 'error');
+    } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+    }
+}
+
+function postJson(path, payload) {
+    return requestJson(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+}
+
+function initQiguaUI() {
+    const methods = ['auto', 'manual', 'specify', 'time'];
+    methods.forEach(method => {
+        document.getElementById(`btn-${method}`).addEventListener(
+            'click',
+            () => switchMethod(method)
+        );
+    });
+
+    document.getElementById('btn-start-auto').addEventListener(
+        'click',
+        autoQigua
+    );
+    document.getElementById('btn-shake').addEventListener(
+        'click',
+        manualShake
+    );
+    document.getElementById('btn-reset-manual').addEventListener(
+        'click',
+        resetManual
+    );
+    document.getElementById('btn-start-time').addEventListener(
+        'click',
+        timeQigua
+    );
+    document.getElementById('btn-submit-specify').addEventListener(
+        'click',
+        submitSpecify
+    );
+    document.getElementById('specify-yao-list').addEventListener(
+        'click',
+        handleSpecifySelection
+    );
 
     buildSpecifyPanel();
-    document.getElementById('btn-submit-specify').addEventListener('click', submitSpecify);
-
     switchMethod('auto');
 }
 
 function switchMethod(method) {
     currentMethod = method;
-    document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`btn-${method}`).classList.add('active');
+    document.querySelectorAll('.method-btn').forEach(button => {
+        const isActive = button.id === `btn-${method}`;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
 
-    document.getElementById('auto-options').classList.toggle('hidden', method !== 'auto');
-    document.getElementById('manual-panel').classList.toggle('hidden', method !== 'manual');
-    document.getElementById('specify-panel').classList.toggle('hidden', method !== 'specify');
-    document.getElementById('time-options').classList.toggle('hidden', method !== 'time');
+    document.getElementById('auto-options').classList.toggle(
+        'hidden',
+        method !== 'auto'
+    );
+    document.getElementById('manual-panel').classList.toggle(
+        'hidden',
+        method !== 'manual'
+    );
+    document.getElementById('specify-panel').classList.toggle(
+        'hidden',
+        method !== 'specify'
+    );
+    document.getElementById('time-options').classList.toggle(
+        'hidden',
+        method !== 'time'
+    );
 
-    if (method === 'manual') resetManual();
-    if (method === 'specify') buildSpecifyPanel();   // 每次切换回手工指定时重建，重置为默认棕色高亮
+    setStatus('');
+    if (method === 'manual') {
+        resetManual();
+    }
+    if (method === 'specify') {
+        buildSpecifyPanel();
+    }
 }
 
 async function autoQigua() {
-    try {
-        const resp = await fetch(`${API_BASE}/api/qigua/auto`, { method: 'POST' });
-        const data = await resp.json();
-        await requestPaipan(data);
-    } catch (e) {
-        alert('起卦失败：' + e.message);
-    }
+    const button = document.getElementById('btn-start-auto');
+    await runAction(button, '正在自动起卦…', '排盘完成', async () => {
+        const qiguaData = await requestJson('/api/qigua/auto', {
+            method: 'POST'
+        });
+        return requestPaipan(qiguaData);
+    });
 }
 
 async function timeQigua() {
-    const timeInput = document.getElementById('time-input').value;
-    let year, month, day, hour;
-    if (timeInput) {
-        const dt = new Date(timeInput);
-        year = dt.getFullYear();
-        month = dt.getMonth() + 1;
-        day = dt.getDate();
-        hour = dt.getHours();
-    } else {
-        const now = new Date();
-        year = now.getFullYear();
-        month = now.getMonth() + 1;
-        day = now.getDate();
-        hour = now.getHours();
-    }
-    try {
-        const resp = await fetch(`${API_BASE}/api/qigua/time`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ method:'time', year, month, day, hour })
+    const button = document.getElementById('btn-start-time');
+    await runAction(button, '正在按时间起卦…', '排盘完成', async () => {
+        const qiguaData = await postJson('/api/qigua/time', {
+            method: 'time',
+            ...readLocalDateTime('time-input')
         });
-        const data = await resp.json();
-        await requestPaipan(data);
-    } catch (e) {
-        alert('时间起卦失败：' + e.message);
-    }
+        return requestPaipan(qiguaData);
+    });
 }
 
-// ========== 手工指定 ==========
 function buildSpecifyPanel() {
     const container = document.getElementById('specify-yao-list');
     const yaoNames = ['上爻', '五爻', '四爻', '三爻', '二爻', '初爻'];
-    container.innerHTML = '';
+    container.replaceChildren();
+    specifyYaos = Array.from(
+        { length: 6 },
+        () => ({ yinYang: 1, isChanging: false })
+    );
 
-    // 初始化内部数据：默认全为阳静
-    specifyYaos = new Array(6).fill(null).map(() => ({ yinYang: 1, isChanging: false }));
-
-    yaoNames.forEach((name, displayIdx) => {
-        const actualIdx = 5 - displayIdx;
-        const div = document.createElement('div');
-        div.className = 'specify-yao-item';
-        div.dataset.index = actualIdx;
-        div.innerHTML = `
+    yaoNames.forEach((name, displayIndex) => {
+        const actualIndex = 5 - displayIndex;
+        const item = document.createElement('div');
+        item.className = 'specify-yao-item';
+        item.dataset.index = actualIndex;
+        item.innerHTML = `
             <span class="yao-label">${name}</span>
-            <button class="yao-value-btn" data-idx="${actualIdx}" data-type="yang">少阳 ▅▅▅▅▅</button>
-            <button class="yao-value-btn" data-idx="${actualIdx}" data-type="yin">少阴 ▅▅　▅▅</button>
-            <button class="yao-value-btn" data-idx="${actualIdx}" data-type="laoyang">老阳 ○</button>
-            <button class="yao-value-btn" data-idx="${actualIdx}" data-type="laoyin">老阴 ×</button>
+            <button type="button" class="yao-value-btn default-selected"
+                    data-idx="${actualIndex}" data-type="yang"
+                    aria-pressed="true">少阳 ▅▅▅▅▅</button>
+            <button type="button" class="yao-value-btn"
+                    data-idx="${actualIndex}" data-type="yin"
+                    aria-pressed="false">少阴 ▅▅　▅▅</button>
+            <button type="button" class="yao-value-btn"
+                    data-idx="${actualIndex}" data-type="laoyang"
+                    aria-pressed="false">老阳 ○</button>
+            <button type="button" class="yao-value-btn"
+                    data-idx="${actualIndex}" data-type="laoyin"
+                    aria-pressed="false">老阴 ×</button>
         `;
-        container.appendChild(div);
-    });
-
-    // 初始化：所有行的“阳”按钮添加默认棕色高亮
-    const items = container.querySelectorAll('.specify-yao-item');
-    items.forEach(item => {
-        const yangBtn = item.querySelector('.yao-value-btn[data-type="yang"]');
-        if (yangBtn) yangBtn.classList.add('default-selected');
-    });
-
-    // 事件监听
-    container.addEventListener('click', (e) => {
-        const btn = e.target.closest('.yao-value-btn');
-        if (!btn) return;
-        const idx = parseInt(btn.dataset.idx);
-        const type = btn.dataset.type;
-
-        // 更新内部数据
-        if (type === 'yang') specifyYaos[idx] = { yinYang: 1, isChanging: false };
-        else if (type === 'yin') specifyYaos[idx] = { yinYang: 0, isChanging: false };
-        else if (type === 'laoyang') specifyYaos[idx] = { yinYang: 1, isChanging: true };
-        else if (type === 'laoyin') specifyYaos[idx] = { yinYang: 0, isChanging: true };
-
-        // 清除该行所有按钮的高亮类，并为当前按钮添加主动高亮
-        const parentItem = btn.closest('.specify-yao-item');
-        const allBtns = parentItem.querySelectorAll('.yao-value-btn');
-        allBtns.forEach(b => {
-            b.classList.remove('default-selected', 'active-selected');
-        });
-        btn.classList.add('active-selected');
+        container.appendChild(item);
     });
 }
 
-function submitSpecify() {
-    const yaoList = specifyYaos.map(y => y.yinYang);
-    const changing = specifyYaos.map(y => y.isChanging);
-
-    const timeInput = document.getElementById('specify-time-input').value;
-    let year, month, day, hour;
-    if (timeInput) {
-        const dt = new Date(timeInput);
-        year = dt.getFullYear();
-        month = dt.getMonth() + 1;
-        day = dt.getDate();
-        hour = dt.getHours();
-    } else {
-        const now = new Date();
-        year = now.getFullYear();
-        month = now.getMonth() + 1;
-        day = now.getDate();
-        hour = now.getHours();
-    }
-
-    requestPaipan({
-        yao_list: yaoList,
-        changing_yao: changing,
-        timestamp: { year, month, day, hour }
-    });
-}
-
-// ========== 手动摇卦 ==========
-function manualShake() {
-    if (currentManualIndex >= 6) {
-        alert('已完成六爻，点击“重新开始”可重摇');
+function handleSpecifySelection(event) {
+    const button = event.target.closest('.yao-value-btn');
+    if (!button) {
         return;
     }
-    fetch(`${API_BASE}/api/qigua/manual_step`, { method: 'POST' })
-        .then(r=>r.json())
-        .then(data => {
-            manualYaos[currentManualIndex] = data;
-            currentManualIndex++;
-            updateManualPreview();
-            if (currentManualIndex === 6) {
-                const yaoList = manualYaos.map(y=>y.yin_yang);
-                const changing = manualYaos.map(y=>y.is_changing);
-                const now = new Date();
-                requestPaipan({
-                    yao_list: yaoList,
-                    changing_yao: changing,
-                    timestamp: { year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(), hour: now.getHours() }
-                });
-            }
+    const index = Number.parseInt(button.dataset.idx, 10);
+    const choices = {
+        yang: { yinYang: 1, isChanging: false },
+        yin: { yinYang: 0, isChanging: false },
+        laoyang: { yinYang: 1, isChanging: true },
+        laoyin: { yinYang: 0, isChanging: true }
+    };
+    const choice = choices[button.dataset.type];
+    if (!choice || !Number.isInteger(index) || index < 0 || index > 5) {
+        return;
+    }
+    specifyYaos[index] = choice;
+
+    button.closest('.specify-yao-item')
+        .querySelectorAll('.yao-value-btn')
+        .forEach(item => {
+            const isSelected = item === button;
+            item.classList.toggle('default-selected', false);
+            item.classList.toggle('active-selected', isSelected);
+            item.setAttribute('aria-pressed', String(isSelected));
         });
+}
+
+async function submitSpecify() {
+    const button = document.getElementById('btn-submit-specify');
+    await runAction(button, '正在校验指定卦象…', '排盘完成', async () => {
+        const qiguaData = await postJson('/api/qigua/specify', {
+            method: 'specify',
+            yao_values: specifyYaos.map(yao => yao.yinYang),
+            changing_yao: specifyYaos.map(yao => yao.isChanging),
+            ...readLocalDateTime('specify-time-input')
+        });
+        return requestPaipan(qiguaData);
+    });
+}
+
+async function manualShake() {
+    const button = document.getElementById('btn-shake');
+    if (currentManualIndex >= 6) {
+        setStatus('六爻已完成；如需重摇，请点击“重新开始”。', 'info');
+        return;
+    }
+    const sessionId = manualSessionId;
+    await runAction(button, '正在摇卦…', '本爻已完成', async () => {
+        const yao = await requestJson('/api/qigua/manual_step', {
+            method: 'POST'
+        });
+        if (sessionId !== manualSessionId || currentMethod !== 'manual') {
+            return { message: '本次摇卦已取消。', type: 'info' };
+        }
+        manualYaos.push(yao);
+        currentManualIndex = manualYaos.length;
+        updateManualPreview();
+
+        if (currentManualIndex < 6) {
+            return {
+                message: `已完成第 ${currentManualIndex} 爻。`,
+                type: 'success'
+            };
+        }
+        const qiguaData = await postJson(
+            '/api/qigua/manual_complete',
+            manualYaos
+        );
+        return await requestPaipan(qiguaData) || {
+            message: '排盘完成',
+            type: 'success'
+        };
+    });
 }
 
 function resetManual() {
+    manualSessionId += 1;
     manualYaos = [];
     currentManualIndex = 0;
     updateManualPreview();
+    setStatus('');
 }
 
 function updateManualPreview() {
-    document.getElementById('current-yao-index').innerText =
-        ['初爻','二爻','三爻','四爻','五爻','上爻'][currentManualIndex] || '完成';
-    document.getElementById('yao-count').innerText = currentManualIndex;
-    const previewDiv = document.getElementById('manual-preview');
-    previewDiv.innerHTML = manualYaos.map((y, i) => {
-        const sym = getYinYangSymbol(y.yin_yang, y.is_changing);
-        return `<span class="preview-yao">${['初','二','三','四','五','上'][i]}爻: ${sym}</span>`;
-    }).join('');
+    const names = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+    document.getElementById('current-yao-index').textContent =
+        names[currentManualIndex] || '完成';
+    document.getElementById('yao-count').textContent = currentManualIndex;
+    const preview = document.getElementById('manual-preview');
+    preview.replaceChildren(
+        ...manualYaos.map((yao, index) => {
+            const item = document.createElement('span');
+            item.className = 'preview-yao';
+            item.textContent = `${names[index]}：${getYinYangSymbol(
+                yao.yin_yang,
+                yao.is_changing
+            )}`;
+            return item;
+        })
+    );
 }
 
 async function requestPaipan(qiguaData) {
-    try {
-        const resp = await fetch(`${API_BASE}/api/paipan/`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(qiguaData)
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        const paipanData = await resp.json();
-        renderPaipan(paipanData);
-    } catch (e) {
-        alert('排盘失败：' + e.message);
-    }
+    const paipanData = await postJson('/api/paipan/', qiguaData);
+    return renderPaipan(paipanData);
 }
+
+document.addEventListener('DOMContentLoaded', initQiguaUI);

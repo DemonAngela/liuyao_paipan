@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>周易六爻排盘 · 纳甲六爻在线排卦</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,18 +15,23 @@
         </header>
 
         <!-- 起卦控制区 -->
-        <section class="control-panel">
+        <section class="control-panel" aria-labelledby="qigua-title">
+            <h2 id="qigua-title" class="sr-only">选择起卦方式</h2>
             <div class="qigua-methods">
-                <button id="btn-auto" class="method-btn active">自动起卦</button>
-                <button id="btn-manual" class="method-btn">手动摇卦</button>
-                <button id="btn-specify" class="method-btn">手工指定</button>
-                <button id="btn-time" class="method-btn">时间起卦</button>
+                <button type="button" id="btn-auto" class="method-btn active"
+                        aria-pressed="true" aria-controls="auto-options">自动起卦</button>
+                <button type="button" id="btn-manual" class="method-btn"
+                        aria-pressed="false" aria-controls="manual-panel">手动摇卦</button>
+                <button type="button" id="btn-specify" class="method-btn"
+                        aria-pressed="false" aria-controls="specify-panel">手工指定</button>
+                <button type="button" id="btn-time" class="method-btn"
+                        aria-pressed="false" aria-controls="time-options">时间起卦</button>
             </div>
 
             <!-- 自动/时间起卦参数（可选） -->
             <div id="auto-options" class="options-panel">
                 <p>点击“开始起卦”随机生成六爻</p>
-                <button id="btn-start-auto" class="primary-btn">开始起卦</button>
+                <button type="button" id="btn-start-auto" class="primary-btn">开始起卦</button>
             </div>
 
             <!-- 手动摇卦区域（默认隐藏） -->
@@ -37,8 +43,8 @@
                     <span class="progress-count">（<span id="yao-count">0</span>/6）</span>
                 </div>
                 <div class="manual-buttons">
-                    <button id="btn-shake" class="primary-btn">摇一爻</button>
-                    <button id="btn-reset-manual" class="secondary-btn">重新开始</button>
+                    <button type="button" id="btn-shake" class="primary-btn">摇一爻</button>
+                    <button type="button" id="btn-reset-manual" class="secondary-btn">重新开始</button>
                 </div>
                 <div id="manual-preview" class="yao-preview">
                     <!-- 已摇的爻会显示在这里 -->
@@ -49,27 +55,33 @@
             <div id="specify-panel" class="specify-panel hidden">
                 <p>点击每个爻位切换阴阳/动变状态</p>
                 <div style="margin-top:10px;">
-                    <label style="margin-right:8px;">起卦时间：</label>
+                    <label for="specify-time-input" style="margin-right:8px;">起卦时间：</label>
                     <input type="datetime-local" id="specify-time-input" class="datetime-input">
                 </div>
                 <div id="specify-yao-list" class="specify-yao-list">
                     <!-- 六个爻的编辑控件由JS生成 -->
                 </div>
-                <button id="btn-submit-specify" class="primary-btn">确认排盘</button>
+                <button type="button" id="btn-submit-specify" class="primary-btn">确认排盘</button>
             </div>
 
             <!-- 时间起卦选项 -->
             <div id="time-options" class="options-panel hidden">
                 <p>使用当前时间起卦，或指定日期时间</p>
                 <div class="datetime-inputs">
+                    <label for="time-input">起卦时间：</label>
                     <input type="datetime-local" id="time-input" class="datetime-input">
                 </div>
-                <button id="btn-start-time" class="primary-btn">时间起卦</button>
+                <button type="button" id="btn-start-time" class="primary-btn">时间起卦</button>
             </div>
+
+            <div id="app-status" class="app-status info" role="status"
+                 aria-live="polite" aria-atomic="true"></div>
         </section>
 
-               <!-- 排盘结果展示区 -->
-        <section id="result-section" class="result-section">
+        <!-- 排盘结果展示区 -->
+        <section id="result-section" class="result-section hidden"
+                 aria-labelledby="result-title">
+            <h2 id="result-title" class="sr-only">排盘结果</h2>
             <!-- 起卦时间信息 -->
             <div id="time-info" class="time-info"></div>
 
@@ -79,12 +91,12 @@
                 <!-- 用神选择器也移动到这里 -->
                 <div id="yongshen-selector" class="yongshen-selector" style="display:none;">
                     <span class="yongshen-label">用神：</span>
-                    <button class="yongshen-btn" data-yongshen="官鬼">官鬼</button>
-                    <button class="yongshen-btn" data-yongshen="父母">父母</button>
-                    <button class="yongshen-btn" data-yongshen="兄弟">兄弟</button>
-                    <button class="yongshen-btn" data-yongshen="子孙">子孙</button>
-                    <button class="yongshen-btn" data-yongshen="妻财">妻财</button>
-                    <button class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="官鬼">官鬼</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="父母">父母</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="兄弟">兄弟</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="子孙">子孙</button>
+                    <button type="button" class="yongshen-btn" data-yongshen="妻财">妻财</button>
+                    <button type="button" class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
                 </div>
             </div>
 
@@ -97,6 +109,7 @@
 
             <!-- 六爻表格部分 -->
             <table id="yao-table" class="yao-table">
+                <caption class="sr-only">六爻本卦、变卦及生克关系</caption>
                 <thead>
                     <tr>
                         <th>爻位</th>
@@ -141,17 +154,11 @@
     </div>
 
     <!-- 爻辞悬浮框 -->
-    <div id="yaoci-tooltip" class="yaoci-tooltip hidden"></div>
+    <div id="yaoci-tooltip" class="yaoci-tooltip hidden" role="tooltip"></div>
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/qigua.js"></script>
     <script src="js/paipan.js"></script>
-    <script>
-        // 初始化页面
-        document.addEventListener('DOMContentLoaded', () => {
-            initQiguaUI();
-        });
-    </script>
 </body>
 </html>

@@ -15,12 +15,16 @@ def test_guaci_manager_loads_complete_records():
     assert guaci["name"] == "乾为天"
     assert guaci["gua_ci"]
     assert isinstance(yaoci, str) and yaoci
+    assert manager.load_guaci_by_name("乾为天") == guaci
+    assert manager.load_yaoci_by_name("乾为天", 1) == yaoci
 
 
 def test_cidian_api_contract_and_path_validation():
     with TestClient(app) as client:
         assert client.get("/api/guaci/1").status_code == 200
         assert client.get("/api/yaoci/1/1").status_code == 200
+        assert client.get("/api/guaci/name/乾为天").status_code == 200
+        assert client.get("/api/yaoci/name/乾为天/1").status_code == 200
         assert client.get("/api/guaci/0").status_code == 422
         assert client.get("/api/guaci/65").status_code == 422
         assert client.get("/api/yaoci/1/7").status_code == 422

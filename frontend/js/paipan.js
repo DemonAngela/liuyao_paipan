@@ -63,7 +63,7 @@ async function renderPaipan(data) {
     const reversedYaos = [...data.yao_list].reverse();
 
     tbody.innerHTML = '';
-    reversedYaos.forEach((yao, idx) => {
+    reversedYaos.forEach(yao => {
         const pos = yao.position;
         const isShi = pos === data.shi_yao;
         const isYing = pos === data.ying_yao;
@@ -94,8 +94,7 @@ async function renderPaipan(data) {
         const benYaoSymbol = yao.yin_yang === 1 ? '▅▅▅▅▅' : '▅▅　▅▅';   // 必须在使用前声明
         tdBen.innerText = `${yao.liuqin} ${benDizhiFull} ${benYaoSymbol}`;
         tdBen.addEventListener('mouseenter', (e) => {
-            const benGuaId = getGuaIdByName(data.ben_gua_name);
-            if (benGuaId) handleCellHover(e, benGuaId, pos);
+            handleCellHover(e, data.ben_gua_name, pos);
         });
         tdBen.addEventListener('mouseleave', hideTooltip);
         tr.appendChild(tdBen);
@@ -157,8 +156,7 @@ async function renderPaipan(data) {
         }
         if (data.bian_gua_name) {
             tdBian.addEventListener('mouseenter', (e) => {
-                const bianGuaId = getGuaIdByName(data.bian_gua_name);
-                if (bianGuaId) handleCellHover(e, bianGuaId, pos);
+                handleCellHover(e, data.bian_gua_name, pos);
             });
             tdBian.addEventListener('mouseleave', hideTooltip);
         }
@@ -210,16 +208,22 @@ async function renderPaipan(data) {
     // 渲染全局关系面板（三合局、六合六冲等）
     renderRelationsPanel(data.relations);
 
-    await loadGuaci(data.ben_gua_name, data.bian_gua_name);
-    document.getElementById('result-section').style.display = 'block';
+    const warning = await loadGuaci(
+        data.ben_gua_name,
+        data.bian_gua_name
+    );
+    document.getElementById('result-section').classList.remove('hidden');
+    return warning;
 }
 
-function handleCellHover(e, guaId, pos) {
+function handleCellHover(e, guaName, pos) {
     clearTimeout(tooltipTimer);
     tooltipTimer = setTimeout(async () => {
         try {
-            const resp = await fetch(`${API_BASE}/api/yaoci/${guaId}/${pos}`);
-            const data = await resp.json();
+            const name = encodeURIComponent(guaName);
+            const data = await requestJson(
+                `/api/yaoci/name/${name}/${pos}`
+            );
             showTooltip(e.clientX, e.clientY, data.yao_ci);
         } catch (error) {
             showTooltip(e.clientX, e.clientY, '暂无爻辞');
@@ -228,31 +232,47 @@ function handleCellHover(e, guaId, pos) {
 }
 
 async function loadGuaci(benName, bianName) {
-    const benId = getGuaIdByName(benName);
-    if (benId) {
-        try {
-            const resp = await fetch(`${API_BASE}/api/guaci/${benId}`);
-            const gua = await resp.json();
-            document.getElementById('ben-gua-name-ci').innerText = gua.name;
-            document.getElementById('ben-gua-ci').innerText = gua.gua_ci;
-            document.getElementById('ben-gua-xiang').innerText = gua.xiang_ci;
-        } catch(e) {}
+    const failures = [];
+
+    async function loadOne(name, prefix) {
+        const encodedName = encodeURIComponent(name);
+        const gua = await requestJson(`/api/guaci/name/${encodedName}`);
+        document.getElementById(`${prefix}-gua-name-ci`).textContent = gua.name;
+        document.getElementById(`${prefix}-gua-ci`).textContent = gua.gua_ci;
+        document.getElementById(`${prefix}-gua-xiang`).textContent = gua.xiang_ci;
     }
-    if (bianName) {
-        const bianId = getGuaIdByName(bianName);
-        if (bianId) {
-            try {
-                const resp = await fetch(`${API_BASE}/api/guaci/${bianId}`);
-                const gua = await resp.json();
-                document.getElementById('bian-gua-name-ci').innerText = gua.name;
-                document.getElementById('bian-gua-ci').innerText = gua.gua_ci;
-                document.getElementById('bian-gua-xiang').innerText = gua.xiang_ci;
-                document.getElementById('bian-guaci-container').style.display = 'block';
-            } catch(e) {}
-        }
+
+    try {
+        await loadOne(benName, 'ben');
+    } catch (error) {
+        failures.push(`本卦卦辞：${error.message}`);
+        document.getElementById('ben-gua-name-ci').textContent = benName;
+        document.getElementById('ben-gua-ci').textContent = '卦辞加载失败';
+        document.getElementById('ben-gua-xiang').textContent = '';
+    }
+
+    const bianContainer = document.getElementById('bian-guaci-container');
+    if (!bianName) {
+        bianContainer.style.display = 'none';
     } else {
-        document.getElementById('bian-guaci-container').style.display = 'none';
+        bianContainer.style.display = 'block';
+        try {
+            await loadOne(bianName, 'bian');
+        } catch (error) {
+            failures.push(`变卦卦辞：${error.message}`);
+            document.getElementById('bian-gua-name-ci').textContent = bianName;
+            document.getElementById('bian-gua-ci').textContent = '卦辞加载失败';
+            document.getElementById('bian-gua-xiang').textContent = '';
+        }
     }
+
+    if (failures.length > 0) {
+        return {
+            message: `排盘完成，但${failures.join('；')}`,
+            type: 'warning'
+        };
+    }
+    return null;
 }
 
 function showTooltip(x, y, text) {

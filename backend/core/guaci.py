@@ -16,6 +16,7 @@ class GuaciManager:
         self._yaoci = self._load_json("yaoci.json")
         if len(self._guaci) != 64 or len(self._yaoci) != 64:
             raise RuntimeError("卦辞和爻辞数据必须各自完整包含 64 卦")
+        self._gua_id_by_name = self._build_name_index()
 
     def _load_json(self, filename: str) -> dict[str, Any]:
         path = self.data_dir / filename
@@ -26,6 +27,20 @@ class GuaciManager:
         if not isinstance(data, dict):
             raise RuntimeError(f"辞典数据根节点必须是对象：{path}")
         return data
+
+    def _build_name_index(self) -> dict[str, int]:
+        result: dict[str, int] = {}
+        for key, item in self._guaci.items():
+            if not isinstance(item, dict) or not isinstance(
+                item.get("name"),
+                str,
+            ):
+                raise RuntimeError(f"第 {key} 卦名数据无效")
+            name = item["name"]
+            if not name or name in result:
+                raise RuntimeError("卦名不能为空或重复")
+            result[name] = int(key)
+        return result
 
     @staticmethod
     def _validate_gua_id(gua_id: int) -> str:
@@ -68,3 +83,21 @@ class GuaciManager:
         if not isinstance(value, str):
             raise RuntimeError(f"第 {gua_id} 卦第 {yao_pos} 爻辞类型无效")
         return value
+
+    def load_guaci_by_name(self, gua_name: str) -> dict[str, str]:
+        """按卦名返回卦辞，供前端避免维护重复卦名映射。"""
+
+        try:
+            gua_id = self._gua_id_by_name[gua_name]
+        except (KeyError, TypeError) as exc:
+            raise KeyError("卦不存在") from exc
+        return self.load_guaci(gua_id)
+
+    def load_yaoci_by_name(self, gua_name: str, yao_pos: int) -> str:
+        """按卦名和爻位返回爻辞。"""
+
+        try:
+            gua_id = self._gua_id_by_name[gua_name]
+        except (KeyError, TypeError) as exc:
+            raise KeyError("卦不存在") from exc
+        return self.load_yaoci(gua_id, yao_pos)

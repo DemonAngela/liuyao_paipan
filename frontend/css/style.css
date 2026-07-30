@@ -109,6 +109,56 @@ h1 {
     display: none !important;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.app-status {
+    min-height: 1.5em;
+    margin-top: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.app-status:empty {
+    visibility: hidden;
+}
+
+.app-status.loading,
+.app-status.info {
+    color: #594632;
+    background: #eee7dc;
+}
+
+.app-status.success {
+    color: #315b3a;
+    background: #e0eee2;
+}
+
+.app-status.warning {
+    color: #765514;
+    background: #f7edcf;
+}
+
+.app-status.error {
+    color: #8a2929;
+    background: #f6dddd;
+}
+
+button:disabled {
+    cursor: wait;
+    opacity: 0.62;
+}
+
 .manual-panel .yao-progress {
     margin: 15px 0;
     font-size: 1.2rem;

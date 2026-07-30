@@ -54,3 +54,36 @@ async def get_yaoci(
         return {"yao_ci": manager.load_yaoci(gua_id, yao_pos)}
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="卦或爻位不存在") from exc
+
+
+@router.get("/guaci/name/{gua_name}", response_model=GuaciResponse)
+async def get_guaci_by_name(
+    gua_name: Annotated[str, PathParam(min_length=2, max_length=8)],
+) -> dict[str, str]:
+    """按卦名获取卦辞，避免客户端重复维护六十四卦映射。"""
+
+    try:
+        return manager.load_guaci_by_name(gua_name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="卦不存在") from exc
+
+
+@router.get(
+    "/yaoci/name/{gua_name}/{yao_pos}",
+    response_model=YaociResponse,
+)
+async def get_yaoci_by_name(
+    gua_name: Annotated[str, PathParam(min_length=2, max_length=8)],
+    yao_pos: Annotated[int, PathParam(ge=1, le=6)],
+) -> dict[str, str]:
+    """按卦名和爻位获取爻辞。"""
+
+    try:
+        return {
+            "yao_ci": manager.load_yaoci_by_name(
+                gua_name,
+                yao_pos,
+            )
+        }
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="卦或爻位不存在") from exc
