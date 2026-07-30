@@ -1,0 +1,432 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: #f5f3f0;
+    color: #3a2c1b;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fffcf8;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    padding: 30px 25px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #d4c5b0;
+    padding-bottom: 20px;
+}
+
+h1 {
+    font-size: 2.2rem;
+    color: #5a3e1b;
+    letter-spacing: 4px;
+}
+
+.subtitle {
+    color: #7a6a5a;
+    font-size: 0.9rem;
+}
+
+/* 控制区 */
+.control-panel {
+    background: #faf7f2;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.qigua-methods {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.method-btn {
+    background: #e7dfd3;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4d3e2e;
+    font-weight: 500;
+}
+
+.method-btn.active {
+    background: #8b6f4c;
+    color: white;
+}
+
+.method-btn:hover {
+    background: #c4b5a2;
+}
+
+.options-panel, .manual-panel, .specify-panel {
+    margin-top: 15px;
+}
+
+.primary-btn {
+    background: #8b6f4c;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.primary-btn:hover {
+    background: #6b5338;
+}
+
+.secondary-btn {
+    background: #d4c5b0;
+    color: #3a2c1b;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.manual-panel .yao-progress {
+    margin: 15px 0;
+    font-size: 1.2rem;
+}
+
+.yao-preview {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.preview-yao {
+    background: #e7dfd3;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.specify-yao-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.specify-yao-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.yao-label {
+    width: 50px;
+    font-weight: bold;
+}
+
+/* 手工指定按钮 - 基础样式 */
+.yao-value-btn {
+    background: #e7dfd3;
+    border: 1px solid #c4b5a2;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-right: 8px;
+    color: #4d3e2e;
+    font-weight: normal;
+    transition: all 0.2s;
+}
+
+.yao-value-btn:hover {
+    background: #c4b5a2;
+}
+
+/* 默认高亮（初始化时的“阳”按钮）—— 使用与次级按钮一致的棕色 */
+.yao-value-btn.default-selected {
+    background: #d4c5b0;
+    border-color: #b8a48c;
+    color: #2d1f0f;
+}
+
+/* 主动点击后的高亮 —— 使用与主要按钮一致的深棕色，与整体界面统一 */
+.yao-value-btn.active-selected {
+    background: #8b6f4c;
+    border-color: #6b5338;
+    color: white;
+    font-weight: 500;
+}
+
+/* 结果区域 */
+.result-section {
+    margin-top: 30px;
+}
+
+/* 天干地支信息块 */
+.ganzhi-info {
+    background: #e8dfd3;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    color: #3a2c1b;
+    font-weight: 500;
+    display: inline-block;
+    white-space: nowrap;
+    margin-bottom: 10px;
+}
+
+/* 卦名行布局 */
+.gua-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    margin-bottom: 20px;
+}
+
+.gua-name {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #5a3e1b;
+}
+
+.arrow {
+    color: #a08b73;
+    font-size: 1.5rem;
+}
+
+/* 表格样式 */
+.yao-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-top: 15px;
+}
+
+.yao-table th {
+    background: #8b6f4c;
+    color: white;
+    padding: 12px 5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.yao-table td {
+    padding: 10px 5px;
+    text-align: center;
+    border-bottom: 1px solid #e0d6cc;
+    white-space: nowrap;
+}
+
+.yao-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.yao-table .shi-yao {
+    background: #fdf3e0;
+    font-weight: bold;
+}
+
+.yao-table .ying-yao {
+    background: #f0ebe4;
+}
+
+.kong-sign {
+    color: #b55 !important;
+    font-size: 0.8rem;
+    margin-left: 4px;
+}
+
+/* 隐藏旧的时间与旬空信息块 */
+#time-info, #xunkong-info {
+    display: none;
+}
+
+/* 卦辞区域 */
+.guaci-area {
+    margin-top: 25px;
+    padding: 20px;
+    background: #faf7f2;
+    border-radius: 12px;
+}
+
+.guaci-area h3 {
+    color: #5a3e1b;
+    margin-bottom: 10px;
+}
+
+.xiang-ci {
+    color: #7a6a5a;
+    font-style: italic;
+    margin-top: 8px;
+}
+
+/* 爻辞悬浮提示 */
+.yaoci-tooltip {
+    position: fixed;
+    background: #3a2c1b;
+    color: #f0e6d8;
+    padding: 12px 18px;
+    border-radius: 8px;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.yaoci-tooltip.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+    .container { padding: 15px; }
+    .yao-table { font-size: 0.8rem; }
+    .gua-name { font-size: 1.4rem; }
+    .ganzhi-info { font-size: 0.8rem; padding: 5px 10px; }
+}
+
+/* 列对齐定制 */
+/* 第4列：本卦 - 居中 */
+.yao-table td:nth-child(4) {
+    text-align: center;
+}
+
+/* 第5列：标记列 - 左对齐，窄宽度 */
+.yao-table th:nth-child(5),
+.yao-table td:nth-child(5) {
+    text-align: left;
+    padding-left: 4px;
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* 第6列：变卦 - 居中 */
+.yao-table td:nth-child(6) {
+    text-align: center;
+}
+
+/* 关系列颜色标识 */
+.shengke-sheng { color: #2d7a4b; }   /* 回头生 - 绿色 */
+.shengke-ke   { color: #c0392b; }   /* 回头克 - 红色 */
+.shengke-he   { color: #2980b9; }   /* 化合 - 蓝色 */
+.shengke-chong{ color: #d4a017; }   /* 化冲 - 金黄色 */
+
+/*  全局关系样式 */
+.relations-panel {
+    background: #faf7f2;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin: 20px 0;
+}
+.section-title {
+    font-weight: bold;
+    color: #5a3e1b;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #c4b5a2;
+    padding-bottom: 5px;
+}
+.relation-item {
+    margin: 8px 0;
+    color: #4d3e2e;
+}
+
+/* 用神选择器 */
+.yongshen-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.yongshen-label {
+    font-weight: bold;
+    margin-right: 4px;
+    color: #5a3e1b;
+}
+.yongshen-btn {
+    background: #e7dfd3;
+    border: 1px solid #c4b5a2;
+    padding: 4px 12px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #4d3e2e;
+    transition: background 0.2s;
+}
+.yongshen-btn:hover {
+    background: #d4c5b0;
+}
+.yongshen-btn.active {
+    background: #8b6f4c;
+    color: white;
+    border-color: #6b5338;
+}
+.yongshen-clear {
+    margin-left: 8px;
+    background: #f2e8dc;
+}
+
+/* 用神高亮行 */
+.yao-table tbody tr.yongshen-highlight {
+    background: #e6f3e6 !important;   /* 淡绿色，与暖黄区分 */
+    box-shadow: inset 0 0 0 2px #8cb4c8;
+}
+/* 全局关系高亮 */
+.relation-highlight {
+    background: #e6f3e6;   /* 与用神行高亮一致 */
+    padding: 0 4px;
+    border-radius: 4px;
+    font-weight: 500;
+    color: #2d4a2d;
+}
+/* 顶部行：日月干支和用神选择器两端对齐 */
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+/* 时间选择器样式 */
+.datetime-input {
+    background: #e7dfd3;
+    border: 1px solid #c4b5a2;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #4d3e2e;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+.datetime-input:focus {
+    border-color: #8b6f4c;
+}

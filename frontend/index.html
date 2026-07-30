@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周易六爻排盘 · 纳甲六爻在线排卦</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>周易六爻排盘</h1>
+            <p class="subtitle">纳甲六爻 · 在线起卦</p>
+        </header>
+
+        <!-- 起卦控制区 -->
+        <section class="control-panel">
+            <div class="qigua-methods">
+                <button id="btn-auto" class="method-btn active">自动起卦</button>
+                <button id="btn-manual" class="method-btn">手动摇卦</button>
+                <button id="btn-specify" class="method-btn">手工指定</button>
+                <button id="btn-time" class="method-btn">时间起卦</button>
+            </div>
+
+            <!-- 自动/时间起卦参数（可选） -->
+            <div id="auto-options" class="options-panel">
+                <p>点击“开始起卦”随机生成六爻</p>
+                <button id="btn-start-auto" class="primary-btn">开始起卦</button>
+            </div>
+
+            <!-- 手动摇卦区域（默认隐藏） -->
+            <div id="manual-panel" class="manual-panel hidden">
+                <p>从初爻开始，逐爻摇卦（点击“摇一爻”）</p>
+                <div class="yao-progress">
+                    <span class="progress-label">当前爻位：</span>
+                    <span id="current-yao-index">初爻</span>
+                    <span class="progress-count">（<span id="yao-count">0</span>/6）</span>
+                </div>
+                <div class="manual-buttons">
+                    <button id="btn-shake" class="primary-btn">摇一爻</button>
+                    <button id="btn-reset-manual" class="secondary-btn">重新开始</button>
+                </div>
+                <div id="manual-preview" class="yao-preview">
+                    <!-- 已摇的爻会显示在这里 -->
+                </div>
+            </div>
+
+            <!-- 手工指定区域（默认隐藏） -->
+            <div id="specify-panel" class="specify-panel hidden">
+                <p>点击每个爻位切换阴阳/动变状态</p>
+                <div style="margin-top:10px;">
+                    <label style="margin-right:8px;">起卦时间：</label>
+                    <input type="datetime-local" id="specify-time-input" class="datetime-input">
+                </div>
+                <div id="specify-yao-list" class="specify-yao-list">
+                    <!-- 六个爻的编辑控件由JS生成 -->
+                </div>
+                <button id="btn-submit-specify" class="primary-btn">确认排盘</button>
+            </div>
+
+            <!-- 时间起卦选项 -->
+            <div id="time-options" class="options-panel hidden">
+                <p>使用当前时间起卦，或指定日期时间</p>
+                <div class="datetime-inputs">
+                    <input type="datetime-local" id="time-input" class="datetime-input">
+                </div>
+                <button id="btn-start-time" class="primary-btn">时间起卦</button>
+            </div>
+        </section>
+
+               <!-- 排盘结果展示区 -->
+        <section id="result-section" class="result-section">
+            <!-- 起卦时间信息 -->
+            <div id="time-info" class="time-info"></div>
+
+            <!-- 新增：顶部行，用于对齐日月干支与用神选择器 -->
+            <div id="header-row" class="header-row">
+                <!-- 日月干支动态插入此处 -->
+                <!-- 用神选择器也移动到这里 -->
+                <div id="yongshen-selector" class="yongshen-selector" style="display:none;">
+                    <span class="yongshen-label">用神：</span>
+                    <button class="yongshen-btn" data-yongshen="官鬼">官鬼</button>
+                    <button class="yongshen-btn" data-yongshen="父母">父母</button>
+                    <button class="yongshen-btn" data-yongshen="兄弟">兄弟</button>
+                    <button class="yongshen-btn" data-yongshen="子孙">子孙</button>
+                    <button class="yongshen-btn" data-yongshen="妻财">妻财</button>
+                    <button class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
+                </div>
+            </div>
+
+            <!-- 卦名与世应 -->
+            <div class="gua-header" style="justify-content: center;">
+                <span id="ben-gua-name" class="gua-name"></span>
+                <span class="arrow">→</span>
+                <span id="bian-gua-name" class="gua-name"></span>
+            </div>
+
+            <!-- 六爻表格部分 -->
+            <table id="yao-table" class="yao-table">
+                <thead>
+                    <tr>
+                        <th>爻位</th>
+                        <th>六神</th>
+                        <th>伏神</th>
+                        <th>本卦</th>
+                        <th>状态</th>
+                        <th>变卦</th>
+                        <th>关系</th>
+                    </tr>
+                </thead>
+                <tbody id="yao-tbody">
+                    <!-- JS动态填充 -->
+                </tbody>
+            </table>
+
+            <!-- 旬空等信息 -->
+            <div id="xunkong-info" class="xunkong-info"></div>
+
+            <!-- 全局关系面板 -->
+            <div id="relations-panel" class="relations-panel" style="display:none;">
+                <div class="section-title">全局关系</div>
+                <div id="sanhe-content" class="relation-item"></div>
+                <div id="liuhe-liuchong-content" class="relation-item"></div>
+                <div id="shengwangmujue-content" class="relation-item"></div>
+            </div>
+
+            <!-- 卦辞区域 -->
+            <div class="guaci-area">
+                <div class="ben-guaci">
+                    <h3 id="ben-gua-name-ci"></h3>
+                    <p id="ben-gua-ci"></p>
+                    <p id="ben-gua-xiang" class="xiang-ci"></p>
+                </div>
+                <div class="bian-guaci" id="bian-guaci-container" style="display:none;">
+                    <h3 id="bian-gua-name-ci"></h3>
+                    <p id="bian-gua-ci"></p>
+                    <p id="bian-gua-xiang" class="xiang-ci"></p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 爻辞悬浮框 -->
+    <div id="yaoci-tooltip" class="yaoci-tooltip hidden"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/qigua.js"></script>
+    <script src="js/paipan.js"></script>
+    <script>
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            initQiguaUI();
+        });
+    </script>
+</body>
+</html>
