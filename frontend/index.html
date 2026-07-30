@@ -114,19 +114,9 @@
             <!-- 起卦时间信息 -->
             <div id="time-info" class="time-info"></div>
 
-            <!-- 新增：顶部行，用于对齐日月干支与用神选择器 -->
+            <!-- 顶部日月干支 -->
             <div id="header-row" class="header-row">
                 <!-- 日月干支动态插入此处 -->
-                <!-- 用神选择器也移动到这里 -->
-                <div id="yongshen-selector" class="yongshen-selector" style="display:none;">
-                    <span class="yongshen-label">用神：</span>
-                    <button type="button" class="yongshen-btn" data-yongshen="官鬼">官鬼</button>
-                    <button type="button" class="yongshen-btn" data-yongshen="父母">父母</button>
-                    <button type="button" class="yongshen-btn" data-yongshen="兄弟">兄弟</button>
-                    <button type="button" class="yongshen-btn" data-yongshen="子孙">子孙</button>
-                    <button type="button" class="yongshen-btn" data-yongshen="妻财">妻财</button>
-                    <button type="button" class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
-                </div>
             </div>
 
             <!-- 卦名与世应 -->
@@ -137,23 +127,26 @@
             </div>
 
             <!-- 六爻表格部分 -->
-            <table id="yao-table" class="yao-table">
-                <caption class="sr-only">六爻本卦、变卦及生克关系</caption>
-                <thead>
-                    <tr>
-                        <th>爻位</th>
-                        <th>六神</th>
-                        <th>伏神</th>
-                        <th>本卦</th>
-                        <th>状态</th>
-                        <th>变卦</th>
-                        <th>关系</th>
-                    </tr>
-                </thead>
-                <tbody id="yao-tbody">
-                    <!-- JS动态填充 -->
-                </tbody>
-            </table>
+            <div class="yao-table-scroll" tabindex="0"
+                 aria-label="六爻排盘表，可横向滚动">
+                <table id="yao-table" class="yao-table">
+                    <caption class="sr-only">六爻本卦、变卦及生克关系</caption>
+                    <thead>
+                        <tr>
+                            <th>爻位</th>
+                            <th>六神</th>
+                            <th>伏神</th>
+                            <th>本卦</th>
+                            <th>状态</th>
+                            <th>变卦</th>
+                            <th>关系</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yao-tbody">
+                        <!-- JS动态填充 -->
+                    </tbody>
+                </table>
+            </div>
 
             <!-- 旬空等信息 -->
             <div id="xunkong-info" class="xunkong-info"></div>
@@ -164,6 +157,81 @@
                 <div id="sanhe-content" class="relation-item"></div>
                 <div id="liuhe-liuchong-content" class="relation-item"></div>
                 <div id="shengwangmujue-content" class="relation-item"></div>
+            </div>
+
+            <!-- 可追溯解卦辅助 -->
+            <div id="analysis-panel" class="analysis-panel" style="display:none;">
+                <div class="analysis-heading">
+                    <div>
+                        <div class="section-title">解卦辅助（实验）</div>
+                        <p id="analysis-notice" class="analysis-notice"></p>
+                    </div>
+                </div>
+
+                <section class="analysis-card yongshen-analysis-card"
+                         aria-labelledby="yongshen-title">
+                    <div class="analysis-card-header">
+                        <div>
+                            <h3 id="yongshen-title">取用分析</h3>
+                            <p>请按占问选择主事六亲，再查看四神与应期线索。</p>
+                        </div>
+                        <div id="yongshen-selector" class="yongshen-selector"
+                             role="group" aria-label="选择用神">
+                            <span class="yongshen-label">用神</span>
+                            <button type="button" class="yongshen-btn" data-yongshen="官鬼"
+                                    aria-pressed="false">官鬼</button>
+                            <button type="button" class="yongshen-btn" data-yongshen="父母"
+                                    aria-pressed="false">父母</button>
+                            <button type="button" class="yongshen-btn" data-yongshen="兄弟"
+                                    aria-pressed="false">兄弟</button>
+                            <button type="button" class="yongshen-btn" data-yongshen="子孙"
+                                    aria-pressed="false">子孙</button>
+                            <button type="button" class="yongshen-btn" data-yongshen="妻财"
+                                    aria-pressed="false">妻财</button>
+                            <button type="button" class="yongshen-btn yongshen-clear" data-yongshen="">清除</button>
+                        </div>
+                    </div>
+                    <p id="yongshen-summary" class="analysis-empty">
+                        尚未选择用神。
+                    </p>
+                    <p id="yongshen-basis" class="profile-rule-basis" hidden></p>
+                    <div id="yongshen-role-grid" class="role-grid"></div>
+                    <div id="yongshen-action-section"
+                         class="profile-action-section" hidden>
+                        <h4>用神作用链</h4>
+                        <div id="yongshen-action-content"
+                             class="analysis-list profile-action-list"></div>
+                    </div>
+                </section>
+
+                <div class="analysis-grid">
+                    <section class="analysis-card" aria-labelledby="dongbian-title">
+                        <h3 id="dongbian-title">动变信息</h3>
+                        <div id="transformation-content" class="analysis-list"></div>
+                    </section>
+                    <section class="analysis-card" aria-labelledby="structure-title">
+                        <h3 id="structure-title">卦体与特殊卦变</h3>
+                        <div id="structure-content" class="analysis-list"></div>
+                    </section>
+                </div>
+
+                <section class="analysis-card timing-card"
+                         aria-labelledby="timing-title">
+                    <div class="analysis-card-header">
+                        <div>
+                            <h3 id="timing-title">应期线索</h3>
+                            <p>仅列候选地支；年月日时远近须结合占问。</p>
+                        </div>
+                    </div>
+                    <div id="timing-content" class="timing-list">
+                        <p class="analysis-empty">选择用神后显示。</p>
+                    </div>
+                </section>
+
+                <details id="rule-trace-panel" class="rule-trace-panel">
+                    <summary>查看断卦规则依据</summary>
+                    <div id="rule-trace-content" class="rule-trace-content"></div>
+                </details>
             </div>
 
             <!-- 卦辞区域 -->

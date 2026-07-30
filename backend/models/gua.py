@@ -329,6 +329,7 @@ class YongshenProfileModel(StrictModel):
     yongshen: str
     summary: str
     roles: list[YongshenRoleModel]
+    action_findings: list[AnalysisFindingModel] = Field(default_factory=list)
     timing_hints: list[TimingHintModel] = Field(default_factory=list)
     rule_ids: list[str] = Field(default_factory=list)
 

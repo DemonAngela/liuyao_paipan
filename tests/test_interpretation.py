@@ -96,6 +96,15 @@ def test_yongshen_profile_maps_four_roles_and_timing_rules():
         and hint["branches"]
         for hint in profile["timing_hints"]
     )
+    action_details = [
+        finding["detail"] for finding in profile["action_findings"]
+    ]
+    assert any("生初爻妻财子" in detail for detail in action_details)
+    assert any("克初爻妻财子" in detail for detail in action_details)
+    assert all(
+        "ZS-ACTION-01" in finding["rule_ids"]
+        for finding in profile["action_findings"]
+    )
 
 
 def test_hidden_god_is_included_in_yongshen_candidates():
@@ -105,13 +114,23 @@ def test_hidden_god_is_included_in_yongshen_candidates():
         role for role in profile["roles"] if role["role"] == "用神"
     )
 
-    assert profile["summary"] == "子孙不上本卦，伏神见1处"
-    assert any(
-        candidate["is_hidden"]
+    assert profile["summary"] == (
+        "子孙不上本卦，伏神见1处；宜核飞伏，必要时再占"
+    )
+    hidden = next(
+        candidate
+        for candidate in yongshen_role["candidates"]
+        if candidate["is_hidden"]
         and candidate["position"] == 1
         and candidate["dizhi"] == "子"
-        for candidate in yongshen_role["candidates"]
     )
+    assert "飞神克伏" in hidden["statuses"]
+    assert any(
+        hint["trigger"] == "伏神得出候选"
+        and hint["rule_ids"] == ["ZS-FUSHEN-01", "ZS-YINGQI-01"]
+        for hint in profile["timing_hints"]
+    )
+    assert "ZS-FUSHEN-01" in profile["rule_ids"]
 
 
 def test_fanyin_fuyin_and_special_transition_are_explained():
@@ -137,9 +156,13 @@ def test_rule_traces_have_unique_ids_and_sources():
     rule_ids = [trace["rule_id"] for trace in traces]
 
     assert len(rule_ids) == len(set(rule_ids))
-    assert {"ZS-QIN-01", "ZS-YONG-01", "ZS-YINGQI-01"} <= set(
-        rule_ids
-    )
+    assert {
+        "ZS-QIN-01",
+        "ZS-YONG-01",
+        "ZS-FUSHEN-01",
+        "ZS-ACTION-01",
+        "ZS-YINGQI-01",
+    } <= set(rule_ids)
     assert all(
         trace["source"].startswith("《增删卜易")
         and trace["source_url"].startswith("https://")

@@ -309,12 +309,26 @@ button:disabled {
 /* 表格样式 */
 .yao-table {
     width: 100%;
+    min-width: 920px;
     border-collapse: collapse;
     background: white;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-top: 0;
+}
+
+.yao-table-scroll {
     margin-top: 15px;
+    overflow-x: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    scrollbar-color: #b8a690 #f3eee8;
+}
+
+.yao-table-scroll:focus-visible {
+    outline: 2px solid #8b6f4c;
+    outline-offset: 3px;
 }
 
 .yao-table th {
@@ -410,13 +424,12 @@ button:disabled {
     text-align: center;
 }
 
-/* 第5列：标记列 - 左对齐，窄宽度 */
+/* 第5列：日月状态分行展示 */
 .yao-table th:nth-child(5),
 .yao-table td:nth-child(5) {
     text-align: left;
-    padding-left: 4px;
-    width: 1%;
-    white-space: nowrap;
+    min-width: 150px;
+    white-space: normal;
 }
 
 /* 第6列：变卦 - 居中 */
@@ -453,9 +466,9 @@ button:disabled {
 .yongshen-selector {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 10px;
 }
 .yongshen-label {
     font-weight: bold;
@@ -474,6 +487,10 @@ button:disabled {
 }
 .yongshen-btn:hover {
     background: #d4c5b0;
+}
+.yongshen-btn:focus-visible {
+    outline: 2px solid #6b5338;
+    outline-offset: 2px;
 }
 .yongshen-btn.active {
     background: #8b6f4c;
@@ -504,6 +521,434 @@ button:disabled {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 10px;
+}
+
+/* 爻状态与动化标签 */
+.status-lines {
+    display: grid;
+    gap: 4px;
+    min-width: 138px;
+}
+
+.status-meta,
+.status-values,
+.transform-tags,
+.candidate-statuses,
+.timing-branches {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    align-items: start;
+    gap: 4px;
+    line-height: 1.45;
+}
+
+.status-source {
+    color: #7a6957;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.status-token,
+.transform-tag,
+.candidate-status,
+.branch-tag,
+.rule-id {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    line-height: 1.4;
+}
+
+.status-token {
+    background: #f2ede7;
+    color: #514638;
+    font-size: 0.74rem;
+    padding: 1px 6px;
+}
+
+.status-token.warning {
+    background: #f9e5df;
+    color: #8a3d32;
+}
+
+.status-token.support {
+    background: #e7f0e4;
+    color: #3f6542;
+}
+
+.status-role {
+    font-weight: 700;
+    color: #5a3e1b;
+}
+
+.status-move {
+    color: #9a4c32;
+    font-weight: 700;
+}
+
+.bian-main {
+    display: block;
+}
+
+.bian-status {
+    display: block;
+    margin-top: 3px;
+    color: #776a5b;
+    font-size: 0.7rem;
+    line-height: 1.35;
+    white-space: normal;
+}
+
+.transform-tags {
+    justify-content: center;
+    max-width: 190px;
+    margin: 0 auto;
+}
+
+.transform-tag {
+    background: #eee8df;
+    color: #5d5143;
+    font-size: 0.75rem;
+    padding: 2px 7px;
+}
+
+.transform-tag.support {
+    background: #dfeddd;
+    color: #315f36;
+}
+
+.transform-tag.warning {
+    background: #f5dfda;
+    color: #8b3d33;
+}
+
+/* 分区解卦辅助 */
+.analysis-panel {
+    display: grid;
+    gap: 16px;
+    margin: 20px 0 26px;
+}
+
+.analysis-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.analysis-notice {
+    margin: 6px 0 0;
+    color: #706354;
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.analysis-card {
+    min-width: 0;
+    padding: 16px 18px;
+    border: 1px solid #e3d9cd;
+    border-radius: 12px;
+    background: #fffdf9;
+    box-shadow: 0 2px 7px rgba(77, 62, 46, 0.05);
+}
+
+.analysis-card h3 {
+    margin: 0;
+    color: #5a3e1b;
+    font-size: 1rem;
+}
+
+.analysis-card p {
+    margin: 5px 0 0;
+    color: #796c5e;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.analysis-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.yongshen-analysis-card .yongshen-selector {
+    justify-content: flex-end;
+    max-width: 520px;
+}
+
+.analysis-list {
+    display: grid;
+    gap: 9px;
+    margin-top: 12px;
+}
+
+.analysis-entry {
+    padding-left: 10px;
+    border-left: 3px solid #c9b79f;
+}
+
+.analysis-entry-title {
+    color: #4d3e2e;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.analysis-entry-detail {
+    margin-top: 2px;
+    color: #6e6255;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.analysis-entry-rules {
+    margin-top: 4px;
+    color: #8a7865;
+    font-size: 0.72rem;
+}
+
+.analysis-empty {
+    color: #8c8175 !important;
+    font-style: italic;
+}
+
+.profile-rule-basis {
+    margin: -2px 0 12px !important;
+    color: #8a7865 !important;
+    font-size: 0.74rem !important;
+}
+
+.profile-action-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #ddcfbe;
+}
+
+.profile-action-section h4 {
+    margin: 0 0 8px;
+    color: var(--brown-dark);
+    font-size: 0.86rem;
+}
+
+.profile-action-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+}
+
+.role-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 13px;
+}
+
+.role-card {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e4dbd0;
+    border-top: 4px solid #b4a594;
+    border-radius: 9px;
+    background: #faf8f4;
+}
+
+.role-card.role-yongshen { border-top-color: #63916a; }
+.role-card.role-yuanshen { border-top-color: #668da4; }
+.role-card.role-jishen { border-top-color: #b56a5d; }
+.role-card.role-choushen { border-top-color: #b18b4f; }
+
+.role-card-title {
+    color: #4d3e2e;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.role-card-relation {
+    min-height: 2.5em;
+    margin: 3px 0 9px;
+    color: #7a6c5e;
+    font-size: 0.74rem;
+}
+
+.candidate-list {
+    display: grid;
+    gap: 7px;
+}
+
+.candidate-item {
+    padding-top: 7px;
+    border-top: 1px dashed #dfd5ca;
+}
+
+.candidate-main {
+    color: #4f4539;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.candidate-statuses {
+    margin-top: 4px;
+}
+
+.candidate-status {
+    background: #eee9e2;
+    color: #706458;
+    padding: 1px 5px;
+    font-size: 0.68rem;
+}
+
+.timing-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 10px;
+}
+
+.timing-entry {
+    padding: 10px 12px;
+    border: 1px solid #e6ddd2;
+    border-radius: 9px;
+    background: #faf8f4;
+}
+
+.timing-trigger {
+    color: #5a3e1b;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.timing-detail {
+    margin-top: 3px;
+    color: #746759;
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+.timing-branches {
+    margin-top: 6px;
+}
+
+.branch-tag {
+    min-width: 26px;
+    justify-content: center;
+    padding: 2px 7px;
+    background: #e7dfd3;
+    color: #4d3e2e;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.rule-trace-panel {
+    padding: 12px 16px;
+    border: 1px solid #dfd3c6;
+    border-radius: 10px;
+    background: #f8f4ee;
+}
+
+.rule-trace-panel summary {
+    color: #5a3e1b;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.rule-trace-content {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.rule-trace-item {
+    padding-top: 9px;
+    border-top: 1px dashed #d6c9ba;
+}
+
+.rule-trace-title {
+    color: #4d3e2e;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.rule-id {
+    margin-right: 6px;
+    padding: 1px 6px;
+    background: #e7dfd3;
+    color: #6a5844;
+    font-family: Consolas, monospace;
+    font-size: 0.68rem;
+}
+
+.rule-trace-source,
+.rule-trace-quote {
+    margin-top: 3px;
+    color: #75685a;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+.rule-trace-source a {
+    color: #725431;
+}
+
+/* 四神爻位高亮 */
+.yao-table tbody tr.yuanshen-highlight {
+    background: #e7f1f6 !important;
+    box-shadow: inset 0 0 0 2px #7fa2b6;
+}
+
+.yao-table tbody tr.jishen-highlight {
+    background: #fae9e5 !important;
+    box-shadow: inset 0 0 0 2px #c48679;
+}
+
+.yao-table tbody tr.choushen-highlight {
+    background: #f7f0df !important;
+    box-shadow: inset 0 0 0 2px #c3a36c;
+}
+
+@media (max-width: 900px) {
+    .analysis-card-header {
+        display: grid;
+    }
+
+    .yongshen-analysis-card .yongshen-selector {
+        justify-content: flex-start;
+        max-width: none;
+    }
+
+    .role-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .analysis-grid,
+    .role-grid,
+    .timing-list,
+    .profile-action-list {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-card {
+        padding: 14px;
+    }
+
+    .yao-table-scroll {
+        margin-right: -6px;
+        margin-left: -6px;
+        border-radius: 8px;
+    }
 }
 
 /* 时间选择器样式 */

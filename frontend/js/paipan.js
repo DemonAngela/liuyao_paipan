@@ -7,13 +7,147 @@ const DIZHI_WUXING_MAP = {
     '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火',
     '午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水'
 };
+const POSITION_NAMES = {1: '初', 2: '二', 3: '三', 4: '四', 5: '五', 6: '上'};
+const ROLE_ROW_CLASS = {
+    '用神': 'yongshen-highlight',
+    '元神': 'yuanshen-highlight',
+    '忌神': 'jishen-highlight',
+    '仇神': 'choushen-highlight'
+};
 
 function getDizhiWithWuxing(dizhi) {
     return dizhi + DIZHI_WUXING_MAP[dizhi];
 }
 
+function statusTone(label) {
+    if (/(破|克|冲|空|墓|绝|退|反吟)/.test(label)) return 'warning';
+    if (/(生|扶|值|旺|进|暗动)/.test(label)) return 'support';
+    return '';
+}
+
+function legacyStatusRelations(yao, prefix) {
+    const isDay = prefix === '日';
+    const values = [];
+    const add = (condition, label) => {
+        if (condition && !values.includes(label)) values.push(label);
+    };
+    add(isDay ? yao.ri_zhi : yao.yue_zhi, `值${prefix}`);
+    add(isDay ? yao.ri_lin : yao.yue_lin, `${prefix}扶`);
+    add(isDay ? yao.ri_he : yao.yue_he, `${prefix}合`);
+    add(isDay ? yao.ri_chong : yao.yue_chong, `${prefix}冲`);
+    add(isDay ? yao.ri_sheng : yao.yue_sheng, `${prefix}生`);
+    add(isDay ? yao.ri_ke : yao.yue_ke, `${prefix}克`);
+    if (isDay) {
+        add(yao.is_andong, '暗动');
+        add(yao.is_ripo, '日破');
+    } else {
+        add(yao.is_yuepo, '月破');
+    }
+    return values;
+}
+
+function normalizedStatusLabels(labels, prefix) {
+    return (labels || []).map(label => {
+        if (label === `值${prefix}`) return '值';
+        if (label.startsWith(prefix)) return label.slice(1);
+        return label;
+    });
+}
+
+function formatStatusText(labels, prefix) {
+    const normalized = normalizedStatusLabels(labels, prefix);
+    return normalized.length ? normalized.join('·') : '—';
+}
+
+function appendStatusRow(container, prefix, labels) {
+    const row = document.createElement('div');
+    row.className = 'status-row';
+    const source = document.createElement('span');
+    source.className = 'status-source';
+    source.textContent = prefix;
+    const values = document.createElement('span');
+    values.className = 'status-values';
+    const normalized = normalizedStatusLabels(labels, prefix);
+    if (!normalized.length) normalized.push('—');
+    normalized.forEach(label => {
+        const token = document.createElement('span');
+        token.className = `status-token ${statusTone(label)}`.trim();
+        token.textContent = label;
+        values.appendChild(token);
+    });
+    row.append(source, values);
+    container.appendChild(row);
+}
+
+function renderYaoStatus(cell, yao, isShi, isYing) {
+    const container = document.createElement('div');
+    container.className = 'status-lines';
+    const meta = document.createElement('div');
+    meta.className = 'status-meta';
+
+    const addMeta = (text, className) => {
+        const span = document.createElement('span');
+        span.className = className;
+        span.textContent = text;
+        meta.appendChild(span);
+    };
+    if (isShi) addMeta('世', 'status-role');
+    if (isYing) addMeta('应', 'status-role');
+    if (yao.is_kong) addMeta('旬空', 'kong-sign');
+    if (yao.is_changing) {
+        addMeta(yao.yin_yang === 1 ? '○→' : '×→', 'status-move');
+    }
+    if (meta.childElementCount) container.appendChild(meta);
+
+    const dayRelations = yao.day_relations?.length
+        ? yao.day_relations
+        : legacyStatusRelations(yao, '日');
+    const monthRelations = yao.month_relations?.length
+        ? yao.month_relations
+        : legacyStatusRelations(yao, '月');
+    appendStatusRow(container, '日', dayRelations);
+    appendStatusRow(container, '月', monthRelations);
+    cell.appendChild(container);
+}
+
+function transformationTone(label) {
+    if (/(回头克|化退|化空|化破|化墓|化绝|化冲|反吟)/.test(label)) {
+        return 'warning';
+    }
+    if (/(回头生|化进|化长生|化帝旺)/.test(label)) return 'support';
+    return '';
+}
+
+function renderTransformationTags(cell, yao) {
+    let labels = yao.transformation_relations || [];
+    if (!labels.length && yao.shengke) {
+        labels = yao.shengke.split(/[、；\s]+/).filter(Boolean);
+    }
+    if (
+        yao.is_changing
+        && yao.biangua_info?.is_kong
+        && !labels.includes('化空')
+    ) {
+        labels = [...labels, '化空'];
+    }
+    if (!labels.length) {
+        cell.textContent = '—';
+        return;
+    }
+    const tags = document.createElement('div');
+    tags.className = 'transform-tags';
+    labels.forEach(label => {
+        const tag = document.createElement('span');
+        tag.className = `transform-tag ${transformationTone(label)}`.trim();
+        tag.textContent = label;
+        tags.appendChild(tag);
+    });
+    cell.appendChild(tags);
+}
+
 async function renderPaipan(data) {
     currentPaipanData = data;
+    currentYongShen = null;
 
     // 天干地支信息
     const ganzhiStr = `${data.gan_zhi.year}年 ${data.gan_zhi.month}月 ${data.gan_zhi.day}日 ${data.gan_zhi.hour}时`;
@@ -99,48 +233,9 @@ async function renderPaipan(data) {
         tdBen.addEventListener('mouseleave', hideTooltip);
         tr.appendChild(tdBen);
 
-            // 5. 状态列
+        // 5. 状态列
         const tdMark = document.createElement('td');
-        tdMark.style.whiteSpace = 'nowrap';
-
-        let htmlParts = [];
-
-        // 世应（加粗）
-        if (isShi) htmlParts.push('<span style="font-weight:bold;">世</span>');
-        if (isYing) htmlParts.push('<span style="font-weight:bold;">应</span>');
-
-        // 旬空（红色小字）
-        if (yao.is_kong) {
-            htmlParts.push('<span class="kong-sign">(空)</span>');
-        }
-
-        // 日月关系（按优先级：值 > 临 > 合 > 生 > 克，冲合并由暗动/日破/月破体现）
-        // 日建部分：若存在暗动或日破，优先显示，不再显示日克
-        if (yao.ri_zhi) htmlParts.push('值日');
-        else if (yao.is_andong) htmlParts.push('暗动');
-        else if (yao.is_ripo) htmlParts.push('日破');
-        else if (yao.ri_lin) htmlParts.push('临日');
-        else if (yao.ri_he) htmlParts.push('日合');
-        else if (yao.ri_sheng) htmlParts.push('日生');
-        else if (yao.ri_ke) htmlParts.push('日克');
-        // 日冲已由暗动或日破表示，不单独显示
-
-        // 月建部分：月破优先显示
-        if (yao.yue_zhi) htmlParts.push('值月');
-        else if (yao.is_yuepo) htmlParts.push('月破');
-        else if (yao.yue_lin) htmlParts.push('临月');
-        else if (yao.yue_he) htmlParts.push('月合');
-        else if (yao.yue_sheng) htmlParts.push('月生');
-        else if (yao.yue_ke) htmlParts.push('月克');
-        // 月冲即月破，统一由月破表示
-
-        // 动爻符号
-        if (yao.is_changing) {
-            const moveMark = yao.yin_yang === 1 ? '○' : '×';
-            htmlParts.push(moveMark + '→');
-        }
-
-        tdMark.innerHTML = htmlParts.join(' ');
+        renderYaoStatus(tdMark, yao, isShi, isYing);
         tr.appendChild(tdMark);
 
         // 6. 变卦（悬停显示变卦爻辞）
@@ -148,9 +243,20 @@ async function renderPaipan(data) {
         if (yao.biangua_info) {
             const bianInfo = yao.biangua_info;
             const bianDizhiFull = getDizhiWithWuxing(bianInfo.dizhi);
-            const bianYaoSymbol = bianInfo.yin_yang === 1 ? '▅▅▅▅▅' : '▅▅　▅▅';   // 在使用前声明
-            tdBian.innerText = `${bianInfo.liuqin} ${bianDizhiFull} ${bianYaoSymbol}`;
-            if (yao.is_changing) tdBian.style.fontWeight = 'bold';
+            const bianYaoSymbol = bianInfo.yin_yang === 1 ? '▅▅▅▅▅' : '▅▅　▅▅';
+            const bianMain = document.createElement('span');
+            bianMain.className = 'bian-main';
+            bianMain.textContent = `${bianInfo.liuqin} ${bianDizhiFull} ${bianYaoSymbol}`;
+            tdBian.appendChild(bianMain);
+            if (yao.is_changing) {
+                bianMain.style.fontWeight = 'bold';
+                const status = document.createElement('span');
+                status.className = 'bian-status';
+                const day = formatStatusText(bianInfo.day_relations, '日');
+                const month = formatStatusText(bianInfo.month_relations, '月');
+                status.textContent = `日：${day}　月：${month}`;
+                tdBian.appendChild(status);
+            }
         } else {
             tdBian.innerText = '—';
         }
@@ -164,42 +270,7 @@ async function renderPaipan(data) {
 
         // 7. 关系列
         const tdRel = document.createElement('td');
-        let relationText = yao.shengke || '';
-        if (yao.is_changing && yao.biangua_info?.is_kong) {
-            const kongSpan = document.createElement('span');
-            kongSpan.className = 'kong-sign';
-            kongSpan.innerText = '(空)';
-            if (relationText) {
-                const textSpan = document.createElement('span');
-                textSpan.innerText = relationText + ' ';
-                tdRel.appendChild(textSpan);
-            }
-            tdRel.appendChild(kongSpan);
-        } else {
-            tdRel.innerText = relationText;
-        }
-
-        if (relationText) {
-            const span = document.createElement('span');
-            span.innerText = relationText;
-            if (relationText.includes('回头生') || relationText.includes('生')) {
-                span.className = 'shengke-sheng';
-            } else if (relationText.includes('回头克') || relationText.includes('克')) {
-                span.className = 'shengke-ke';
-            } else if (relationText.includes('化合') || relationText.includes('合')) {
-                span.className = 'shengke-he';
-            } else if (relationText.includes('化冲') || relationText.includes('冲')) {
-                span.className = 'shengke-chong';
-            }
-            tdRel.innerHTML = '';
-            tdRel.appendChild(span);
-            if (yao.is_changing && yao.biangua_info?.is_kong) {
-                const kongSpan = document.createElement('span');
-                kongSpan.className = 'kong-sign';
-                kongSpan.innerText = ' (空)';
-                tdRel.appendChild(kongSpan);
-            }
-        }
+        renderTransformationTags(tdRel, yao);
         tr.appendChild(tdRel);
 
         tbody.appendChild(tr);
@@ -207,6 +278,7 @@ async function renderPaipan(data) {
 
     // 渲染全局关系面板（三合局、六合六冲等）
     renderRelationsPanel(data.relations);
+    renderInterpretationPanel(data.analysis);
 
     const warning = await loadGuaci(
         data.ben_gua_name,
@@ -368,91 +440,303 @@ function renderRelationsPanel(relations) {
 
     panel.style.display = 'block';
 
-    // 显示用神选择器并绑定事件
-    const yongshenSelector = document.getElementById('yongshen-selector');
-    if (yongshenSelector) {
-        yongshenSelector.style.display = 'flex';
-        // 移除之前的激活状态
-        yongshenSelector.querySelectorAll('.yongshen-btn').forEach(btn => btn.classList.remove('active'));
-        // 绑定点击事件（只绑定一次，但可每次渲染时清理并重新绑定，简单起见使用事件委托）
-        if (!yongshenSelector._bound) {
-            yongshenSelector.addEventListener('click', (e) => {
-                const btn = e.target.closest('.yongshen-btn');
-                if (!btn) return;
-                const yongshen = btn.dataset.yongshen;
-                // 更新激活样式
-                yongshenSelector.querySelectorAll('.yongshen-btn').forEach(b => b.classList.remove('active'));
-                if (yongshen) btn.classList.add('active');
-                else {
-                    // 清除按钮高亮空
-                    const clearBtn = yongshenSelector.querySelector('.yongshen-clear');
-                    if (clearBtn) clearBtn.classList.add('active');
-                }
-                currentYongShen = yongshen || null;
-                // 应用高亮
+}
+
+function appendAnalysisEmpty(container, text) {
+    container.innerHTML = '';
+    const empty = document.createElement('p');
+    empty.className = 'analysis-empty';
+    empty.textContent = text;
+    container.appendChild(empty);
+}
+
+function renderFindingList(containerId, findings, emptyText) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    if (!findings?.length) {
+        appendAnalysisEmpty(container, emptyText);
+        return;
+    }
+    findings.forEach(finding => {
+        const entry = document.createElement('article');
+        entry.className = 'analysis-entry';
+        const title = document.createElement('div');
+        title.className = 'analysis-entry-title';
+        title.textContent = finding.title;
+        const detail = document.createElement('div');
+        detail.className = 'analysis-entry-detail';
+        detail.textContent = finding.detail;
+        entry.append(title, detail);
+        if (finding.rule_ids?.length) {
+            const rules = document.createElement('div');
+            rules.className = 'analysis-entry-rules';
+            rules.textContent = `依据：${finding.rule_ids.join('、')}`;
+            entry.appendChild(rules);
+        }
+        container.appendChild(entry);
+    });
+}
+
+function renderRoleCards(profile) {
+    const grid = document.getElementById('yongshen-role-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const roleClass = {
+        '用神': 'role-yongshen',
+        '元神': 'role-yuanshen',
+        '忌神': 'role-jishen',
+        '仇神': 'role-choushen'
+    };
+    profile.roles.forEach(role => {
+        const card = document.createElement('article');
+        card.className = `role-card ${roleClass[role.role] || ''}`.trim();
+        const title = document.createElement('div');
+        title.className = 'role-card-title';
+        title.textContent = `${role.role} · ${role.liuqin}`;
+        const relation = document.createElement('div');
+        relation.className = 'role-card-relation';
+        relation.textContent = role.relationship;
+        card.append(title, relation);
+
+        const list = document.createElement('div');
+        list.className = 'candidate-list';
+        if (!role.candidates.length) {
+            const empty = document.createElement('span');
+            empty.className = 'analysis-empty';
+            empty.textContent = '本卦及伏神未见';
+            list.appendChild(empty);
+        }
+        role.candidates.forEach(candidate => {
+            const item = document.createElement('div');
+            item.className = 'candidate-item';
+            const main = document.createElement('div');
+            main.className = 'candidate-main';
+            const place = candidate.is_hidden
+                ? `伏于${POSITION_NAMES[candidate.position]}爻`
+                : `${POSITION_NAMES[candidate.position]}爻`;
+            main.textContent = `${place} · ${candidate.dizhi}${candidate.wuxing} · ${candidate.activity}`;
+            item.appendChild(main);
+            if (candidate.statuses?.length) {
+                const statuses = document.createElement('div');
+                statuses.className = 'candidate-statuses';
+                candidate.statuses.forEach(text => {
+                    const status = document.createElement('span');
+                    status.className = 'candidate-status';
+                    status.textContent = text;
+                    statuses.appendChild(status);
+                });
+                item.appendChild(statuses);
+            }
+            list.appendChild(item);
+        });
+        card.appendChild(list);
+        grid.appendChild(card);
+    });
+}
+
+function renderTimingHints(hints) {
+    const container = document.getElementById('timing-content');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!hints?.length) {
+        appendAnalysisEmpty(container, '当前用神没有可直接列出的应期线索。');
+        return;
+    }
+    hints.forEach(hint => {
+        const entry = document.createElement('article');
+        entry.className = 'timing-entry';
+        const trigger = document.createElement('div');
+        trigger.className = 'timing-trigger';
+        trigger.textContent = hint.trigger;
+        const detail = document.createElement('div');
+        detail.className = 'timing-detail';
+        detail.textContent = hint.detail;
+        const branches = document.createElement('div');
+        branches.className = 'timing-branches';
+        hint.branches.forEach(branch => {
+            const tag = document.createElement('span');
+            tag.className = 'branch-tag';
+            tag.textContent = branch;
+            branches.appendChild(tag);
+        });
+        entry.append(trigger, detail, branches);
+        if (hint.rule_ids?.length) {
+            const rules = document.createElement('div');
+            rules.className = 'analysis-entry-rules';
+            rules.textContent = `依据：${hint.rule_ids.join('、')}`;
+            entry.appendChild(rules);
+        }
+        container.appendChild(entry);
+    });
+}
+
+function renderRuleTraces(traces) {
+    const container = document.getElementById('rule-trace-content');
+    if (!container) return;
+    container.innerHTML = '';
+    (traces || []).forEach(trace => {
+        const item = document.createElement('article');
+        item.className = 'rule-trace-item';
+        const title = document.createElement('div');
+        title.className = 'rule-trace-title';
+        const ruleId = document.createElement('span');
+        ruleId.className = 'rule-id';
+        ruleId.textContent = trace.rule_id;
+        title.appendChild(ruleId);
+        title.append(document.createTextNode(trace.title));
+
+        const source = document.createElement('div');
+        source.className = 'rule-trace-source';
+        const link = document.createElement('a');
+        link.href = trace.source_url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = trace.source;
+        source.append(link, document.createTextNode(` · ${trace.confidence}`));
+
+        const quote = document.createElement('div');
+        quote.className = 'rule-trace-quote';
+        quote.textContent = `“${trace.source_text}”`;
+        item.append(title, source, quote);
+        container.appendChild(item);
+    });
+}
+
+function renderYongshenProfile(data) {
+    const summary = document.getElementById('yongshen-summary');
+    const basis = document.getElementById('yongshen-basis');
+    const grid = document.getElementById('yongshen-role-grid');
+    const actionSection = document.getElementById('yongshen-action-section');
+    const timing = document.getElementById('timing-content');
+    const profile = currentYongShen
+        ? data?.analysis?.yongshen_profiles?.[currentYongShen]
+        : null;
+    if (!profile) {
+        if (summary) summary.textContent = currentYongShen
+            ? '当前响应没有该用神分析。'
+            : '尚未选择用神。';
+        if (basis) {
+            basis.hidden = true;
+            basis.textContent = '';
+        }
+        if (actionSection) actionSection.hidden = true;
+        if (grid) grid.innerHTML = '';
+        if (timing) appendAnalysisEmpty(timing, '选择用神后显示。');
+        return;
+    }
+    if (summary) summary.textContent = profile.summary;
+    if (basis) {
+        basis.textContent = `取用依据：${(profile.rule_ids || []).join('、')}`;
+        basis.hidden = !profile.rule_ids?.length;
+    }
+    renderRoleCards(profile);
+    if (actionSection) actionSection.hidden = false;
+    renderFindingList(
+        'yongshen-action-content',
+        profile.action_findings,
+        '未触发明确的动爻或得扶静爻作用候选。'
+    );
+    renderTimingHints(profile.timing_hints);
+}
+
+function renderInterpretationPanel(analysis) {
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) return;
+    if (!analysis) {
+        panel.style.display = 'none';
+        return;
+    }
+    panel.style.display = 'grid';
+    const notice = document.getElementById('analysis-notice');
+    if (notice) notice.textContent = analysis.notice;
+    renderFindingList(
+        'transformation-content',
+        analysis.transformation_findings,
+        '本卦无明动爻。'
+    );
+    renderFindingList(
+        'structure-content',
+        analysis.structure_findings,
+        '未触发反伏吟或特殊卦变。'
+    );
+    renderRuleTraces(analysis.rule_traces);
+
+    const selector = document.getElementById('yongshen-selector');
+    if (selector) {
+        selector.querySelectorAll('.yongshen-btn').forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.yongshen) {
+                button.setAttribute('aria-pressed', 'false');
+            }
+        });
+        if (!selector.dataset.bound) {
+            selector.addEventListener('click', event => {
+                const button = event.target.closest('.yongshen-btn');
+                if (!button) return;
+                currentYongShen = button.dataset.yongshen || null;
+                selector.querySelectorAll('.yongshen-btn').forEach(item => {
+                    const selected = Boolean(currentYongShen)
+                        && item.dataset.yongshen === currentYongShen;
+                    item.classList.toggle('active', selected);
+                    if (item.dataset.yongshen) {
+                        item.setAttribute('aria-pressed', String(selected));
+                    }
+                });
+                renderYongshenProfile(currentPaipanData);
                 applyYongshenHighlight(currentPaipanData);
             });
-            yongshenSelector._bound = true;
+            selector.dataset.bound = 'true';
         }
     }
-
+    renderYongshenProfile(currentPaipanData);
+    applyYongshenHighlight(currentPaipanData);
 }
 
 function applyYongshenHighlight(data) {
-    // 移除原有高亮行
-    document.querySelectorAll('.yongshen-highlight').forEach(tr => tr.classList.remove('yongshen-highlight'));
-    // 移除关系高亮
-    document.querySelectorAll('.relation-highlight').forEach(el => el.classList.remove('relation-highlight'));
-
-    if (!currentYongShen) return;
-
-    // 获取用神所在的地支集合（可能多个爻）
-    const targetDizhiSet = new Set();
-    data.yao_list.forEach(yao => {
-        if (yao.liuqin === currentYongShen) {
-            targetDizhiSet.add(yao.dizhi);
-            // 高亮行
-            const row = document.querySelector(`tr[data-yao-pos="${yao.position}"]`);
-            if (row) row.classList.add('yongshen-highlight');
-        }
+    const rowClasses = Object.values(ROLE_ROW_CLASS);
+    document.querySelectorAll('#yao-tbody tr').forEach(row => {
+        row.classList.remove(...rowClasses);
     });
+    document.querySelectorAll('.relation-highlight').forEach(element => {
+        element.classList.remove('relation-highlight');
+    });
+    if (!currentYongShen || !data) return;
 
-    if (targetDizhiSet.size === 0) return;
-
-    // 高亮全局关系面板中涉及这些地支的条目
-    // 三合局条目
-    // 高亮全局关系面板中涉及这些地支的条目
-    const highlightEntries = (containerId) => {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        const entries = container.querySelectorAll('.relation-entry');
-        entries.forEach(entry => {
-            if (Array.from(targetDizhiSet).some(dz => entry.textContent.includes(dz))) {
-                entry.classList.add('relation-highlight');
-            }
+    const profile = data.analysis?.yongshen_profiles?.[currentYongShen];
+    const targetDizhiSet = new Set();
+    if (profile) {
+        profile.roles.forEach(role => {
+            role.candidates.forEach(candidate => {
+                if (role.role === '用神') {
+                    targetDizhiSet.add(candidate.dizhi);
+                }
+                if (candidate.is_hidden) return;
+                const row = document.querySelector(
+                    `tr[data-yao-pos="${candidate.position}"]`
+                );
+                if (row) row.classList.add(ROLE_ROW_CLASS[role.role]);
+            });
         });
-    };
-    highlightEntries('sanhe-content');
-    highlightEntries('liuhe-liuchong-content');
-    highlightEntries('shengwangmujue-content');
-    // 六合六冲条目
-    const liuheDiv = document.getElementById('liuhe-liuchong-content');
-    if (liuheDiv) {
-        const spans = liuheDiv.querySelectorAll('span');
-        spans.forEach(span => {
-            if (Array.from(targetDizhiSet).some(dz => span.textContent.includes(dz))) {
-                span.classList.add('relation-highlight');
-            }
+    } else {
+        data.yao_list.forEach(yao => {
+            if (yao.liuqin !== currentYongShen) return;
+            targetDizhiSet.add(yao.dizhi);
+            const row = document.querySelector(
+                `tr[data-yao-pos="${yao.position}"]`
+            );
+            if (row) row.classList.add('yongshen-highlight');
         });
     }
-    // 生旺墓绝条目（如果已实现）
-    const swmjDiv = document.getElementById('shengwangmujue-content');
-    if (swmjDiv) {
-        const spans = swmjDiv.querySelectorAll('span');
-        spans.forEach(span => {
-            if (Array.from(targetDizhiSet).some(dz => span.textContent.includes(dz))) {
-                span.classList.add('relation-highlight');
-            }
+
+    ['sanhe-content', 'liuhe-liuchong-content', 'shengwangmujue-content']
+        .forEach(containerId => {
+            const container = document.getElementById(containerId);
+            container?.querySelectorAll('.relation-entry').forEach(entry => {
+                const related = Array.from(targetDizhiSet).some(dizhi => {
+                    return entry.textContent.includes(dizhi);
+                });
+                entry.classList.toggle('relation-highlight', related);
+            });
         });
-    }
 }
