@@ -343,7 +343,7 @@ button:disabled {
 .yao-table td {
     padding: 9px 7px;
     text-align: center;
-    vertical-align: middle;
+    vertical-align: top;
     border-bottom: 1px solid #e0d6cc;
     white-space: nowrap;
 }
@@ -548,6 +548,13 @@ button:disabled {
     min-width: 0;
 }
 
+.ben-gua-cell,
+.fushen-cell {
+    position: relative;
+    padding-top: 9px !important;
+    padding-bottom: 28px !important;
+}
+
 .gua-line-main {
     display: flex;
     align-items: baseline;
@@ -559,15 +566,13 @@ button:disabled {
 }
 
 .ben-main {
-    position: relative;
-    min-height: 36px;
-    padding-top: 18px;
+    position: static;
+    min-height: 0;
+    padding-top: 0;
 }
 
 .fushen-cell {
-    position: relative;
-    padding-top: 27px !important;
-    padding-bottom: 8px !important;
+    min-height: 0;
 }
 
 .status-lines {
@@ -583,6 +588,11 @@ button:disabled {
 
 .yao-status-cell .status-lines {
     margin-top: 0;
+}
+
+.yao-status-cell,
+.transformation-cell {
+    padding-top: 34px !important;
 }
 
 .status-meta,
@@ -1056,13 +1066,13 @@ button:disabled {
 .ben-main > .yao-role-marker,
 .fushen-cell > .yao-role-marker {
     position: absolute;
-    top: 0;
+    top: 34px;
     left: 50%;
     transform: translateX(-50%);
 }
 
 .fushen-cell > .yao-role-marker {
-    top: 6px;
+    top: 34px;
 }
 
 .marker-yongshen {
