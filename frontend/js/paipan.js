@@ -60,18 +60,12 @@ function appendStatusRow(container, prefix, labels) {
     if (!normalized.length) return false;
     const row = document.createElement('div');
     row.className = 'status-row';
-    const source = document.createElement('span');
-    source.className = 'status-source';
-    source.textContent = prefix;
-    const values = document.createElement('span');
-    values.className = 'status-values';
     normalized.forEach(label => {
         const token = document.createElement('span');
         token.className = `status-token ${statusTone(label)}`.trim();
-        token.textContent = label;
-        values.appendChild(token);
+        token.textContent = `${prefix}${label}`;
+        row.appendChild(token);
     });
-    row.append(source, values);
     container.appendChild(row);
     return true;
 }
