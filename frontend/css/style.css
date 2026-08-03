@@ -661,6 +661,23 @@ button:disabled {
     font-size: 0.72rem;
 }
 
+.status-andong {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #4f6b53;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.status-andong::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #718b73;
+    content: "";
+}
+
 .bian-main {
     min-height: 0;
 }

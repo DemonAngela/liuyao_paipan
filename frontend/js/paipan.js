@@ -79,6 +79,13 @@ function appendStatusRow(container, prefix, labels) {
 function renderYaoStatus(cell, yao, isShi, isYing) {
     const container = document.createElement('div');
     container.className = 'status-lines';
+    const rawDayRelations = yao.day_relations?.length
+        ? yao.day_relations
+        : legacyStatusRelations(yao, '日');
+    const dayRelations = rawDayRelations.filter(label => label !== '暗动');
+    const monthRelations = yao.month_relations?.length
+        ? yao.month_relations
+        : legacyStatusRelations(yao, '月');
     const meta = document.createElement('div');
     meta.className = 'status-meta';
 
@@ -94,14 +101,10 @@ function renderYaoStatus(cell, yao, isShi, isYing) {
     if (yao.is_changing) {
         addMeta(yao.yin_yang === 1 ? '○→' : '×→', 'status-move');
     }
+    if (yao.is_andong || rawDayRelations.includes('暗动')) {
+        addMeta('暗动', 'status-andong');
+    }
     if (meta.childElementCount) container.appendChild(meta);
-
-    const dayRelations = yao.day_relations?.length
-        ? yao.day_relations
-        : legacyStatusRelations(yao, '日');
-    const monthRelations = yao.month_relations?.length
-        ? yao.month_relations
-        : legacyStatusRelations(yao, '月');
     appendStatusRow(container, '日', dayRelations);
     appendStatusRow(container, '月', monthRelations);
     if (container.childElementCount) cell.appendChild(container);
