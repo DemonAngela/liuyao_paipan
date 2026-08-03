@@ -587,7 +587,24 @@ button:disabled {
 }
 
 .yao-status-cell .status-lines {
+    display: grid;
+    grid-template-rows: minmax(14px, auto) auto;
+    gap: 3px;
     margin-top: 0;
+}
+
+.yao-status-cell .status-meta,
+.yao-status-cell .status-relations {
+    justify-content: center;
+}
+
+.yao-status-cell .status-meta {
+    grid-row: 1;
+}
+
+.yao-status-cell .status-relations {
+    grid-row: 2;
+    gap: 9px;
 }
 
 .yao-status-cell,
@@ -596,6 +613,7 @@ button:disabled {
 }
 
 .status-meta,
+.status-relations,
 .status-values,
 .transform-tags,
 .candidate-statuses,

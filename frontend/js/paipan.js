@@ -104,9 +104,12 @@ function renderYaoStatus(cell, yao, isShi, isYing) {
     if (yao.is_andong || rawDayRelations.includes('暗动')) {
         addMeta('暗动', 'status-andong');
     }
+    const relations = document.createElement('div');
+    relations.className = 'status-relations';
     if (meta.childElementCount) container.appendChild(meta);
-    appendStatusRow(container, '日', dayRelations);
-    appendStatusRow(container, '月', monthRelations);
+    appendStatusRow(relations, '日', dayRelations);
+    appendStatusRow(relations, '月', monthRelations);
+    if (relations.childElementCount) container.appendChild(relations);
     if (container.childElementCount) cell.appendChild(container);
 }
 
