@@ -16,21 +16,23 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+            pyproject.toml
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
+          python -m pip install -e . --no-deps
 
       - name: Compile backend
         run: python -m compileall -q backend
@@ -38,11 +40,14 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      - name: Verify installed public API
+        run: python -c "from backend import calculate_ganzhi, paipan; assert calculate_ganzhi(1986, 5, 29)['year'] == '丙寅'"
+
   container:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build container
         run: docker build --tag liuyao-paipan:ci .

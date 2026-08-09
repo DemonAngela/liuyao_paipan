@@ -4,35 +4,23 @@
 [![CodeQL](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-一个使用 Python / FastAPI 与原生 JavaScript 实现的开源六爻排盘 Web 应用。项目将六十四卦、纳甲、六亲、六神、旬空、生克冲合等规则编码为可检查、可测试的软件，并提供 REST API 与浏览器界面。
+一个把六爻传统规则编码为**可检查、可测试、可复现软件**的开源项目。仓库提供 Python 集成接口、FastAPI REST API、浏览器界面、六十四卦结构化数据、回归测试、Docker 发布和规则来源/约定文档。
 
-**English summary:** An open-source Liuyao (Six-Line I Ching) engine and web/API implementation focused on reproducible rule encoding, inspectable data, regression tests, and explicit documentation of unresolved calendrical or traditional-rule ambiguities.
+> **状态：持续维护、pre-1.0。** 项目用于学习、研究、软件验证与可复现的规则讨论，不宣称是传统术数的唯一权威解释，也不应用于医疗、法律、金融等高风险决策。
 
-> **项目状态：持续维护中。** 当前实现适合学习、研究与软件工程验证，不应被视为传统术数规则的唯一权威实现，也不应用于医疗、法律、金融等高风险决策。
+## 已实现
 
-## 功能
-
-- 自动起卦：按三枚铜钱的 6/7/8/9 概率生成六爻
+- 三枚铜钱 6/7/8/9 概率起卦
 - 手动摇卦与手工指定六爻
-- 实验性时间起卦
 - 纳甲、六亲、世应、六神、旬空
 - 动爻、变卦与部分生克冲合关系
-- 六十四卦卦辞与 384 条爻辞查询
-- FastAPI REST API + 无框架静态前端
-
-## 技术栈
-
-- Python 3.10+
-- FastAPI / Uvicorn / Pydantic
-- HTML / CSS / Vanilla JavaScript
-- JSON 静态数据
-- pytest + GitHub Actions
-- Docker / GitHub Container Registry release workflow
-- CodeQL + Dependabot
+- 六十四卦与 384 条爻辞数据
+- 基于真实节气交接时刻的可复现干支年月边界
+- 小型、稳定的 Python 集成接口
+- FastAPI REST API 与原生 JavaScript 前端
+- 与稳定规则契约明确区分的实验性时间起卦接口
 
 ## 快速开始
-
-### Python
 
 ```bash
 python -m venv .venv
@@ -42,7 +30,24 @@ pip install -r requirements.txt
 python -m backend.main
 ```
 
-默认访问：`http://127.0.0.1:8000`
+访问 `http://127.0.0.1:8000`，交互式 API 文档位于 `/docs`。
+
+### Python 集成
+
+```python
+from backend import calculate_ganzhi, paipan
+
+ganzhi = calculate_ganzhi(1986, 5, 29, 0, 0)
+chart = paipan(
+    [1, 1, 1, 1, 1, 1],
+    year=2026,
+    month=4,
+    day=23,
+    hour=10,
+)
+```
+
+稳定集成入口与输入约定见 [`docs/PYTHON_API.md`](docs/PYTHON_API.md)。
 
 ### Docker
 
@@ -51,105 +56,59 @@ docker build -t liuyao-paipan .
 docker run --rm -p 8000:8000 liuyao-paipan
 ```
 
-发布标签会通过 GitHub Actions 构建并发布版本化容器镜像；发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
+版本发布会生成 GHCR 镜像；Release workflow 同时生成容器 SBOM、provenance 与针对镜像 digest 的 GitHub artifact attestation。
 
-如需跨域访问 API，请显式配置允许来源：
+## 干支历法基准
 
-```bash
-LIUYAO_CORS_ORIGINS=http://localhost:5173,https://example.com
-```
+生产代码固定使用 `lunar_python==1.4.8` 作为**可复现的软件基准**。年柱与月柱使用该基准计算的真实节气交接时刻；项目明确采用晚子时 `23:00-23:59` 不提前换日的 `Exact2 / sect-2` 约定。
 
-默认不开放跨域。
+这是一项确定的软件工程约定，不代表某个库或某个术数流派具有普遍唯一权威。规则来源、争议处理和验证范围见 [`docs/VALIDATION.md`](docs/VALIDATION.md) 与 [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md)。
 
-## API
+CI 对这部分至少验证：
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| POST | `/api/qigua/auto` | 三枚铜钱概率自动起卦 |
-| POST | `/api/qigua/manual_step` | 返回单爻摇卦结果 |
-| POST | `/api/qigua/manual_complete` | 提交完整六爻结果 |
-| POST | `/api/qigua/specify` | 指定六爻与动爻 |
-| POST | `/api/qigua/time` | 实验性时间起卦 |
-| POST | `/api/paipan/` | 根据起卦结果排盘 |
-| GET | `/api/guaci/{gua_id}` | 查询卦辞 |
-| GET | `/api/yaoci/{gua_id}/{yao_pos}` | 查询爻辞 |
+- 人工可读的固定参考案例
+- 2020–2029 年 1 月跨年边界样本
+- 2024–2026 年十二个“节”交接前后各 1 分钟
+- 晚子时换日约定
+- 2020–2029 共 3,653 个每日正午样本，年/月/日柱对固定基准必须保持 **0 mismatch**
 
-FastAPI 启动后可通过 `/docs` 查看交互式 API 文档；可复制的 curl/Python 集成样例见 [`docs/API_EXAMPLES.md`](docs/API_EXAMPLES.md)。
+## 更广泛的自动验证
 
-## 数据与算法
+Pull Request 会运行：
 
-主要实现位于：
+- Python 3.10 / 3.11 / 3.12
+- 后端编译检查
+- 安装后 Python 公共 API import/调用检查
+- pytest 回归与 HTTP smoke tests
+- Docker image build
+- CodeQL 安全分析
 
-```text
-backend/
-├── api/                 # HTTP API
-├── core/                # 干支、排盘、生克等核心逻辑
-├── data/                # 64 卦、384 爻及排盘元数据
-├── models/              # Pydantic 请求/响应模型
-└── utils/               # 常量与辅助逻辑
-frontend/                # 浏览器界面
-tests/                   # 回归与数据完整性测试
-```
+测试还覆盖输入边界、三枚铜钱映射、64 卦/384 爻数据完整性、实际 HTTP 路径、Python 公共接口，以及 **64 个本卦 × 64 个动爻 mask = 4,096 种组合**的结构化排盘验证。
 
-CI 会至少验证：
-
-- 起卦请求的六爻长度、0/1 值域和日期边界
-- 三枚铜钱 6/7/8/9 到阴阳/动静的映射
-- `64gua_full.json` 包含 64 卦和 384 爻结构
-- `yaoci.json` 包含 64 × 6 条非空爻辞
-- 后端代码可以完成 Python 编译检查
-- Docker 镜像可以成功构建
-
-运行测试：
-
-```bash
-pip install pytest
-python -m pytest -q
-```
+Dependabot 持续维护 Python 与 GitHub Actions 依赖。领域规则变更需要可复现案例，并附可核验来源/参考实现或明确的项目约定。
 
 ## 已知限制
 
-项目主动公开尚未解决的准确性与工程问题，详见 [`CODE_REVIEW.md`](CODE_REVIEW.md)。其中最重要的限制包括：
-
-1. **干支历法边界仍需加强。** 当前节气边界与月柱实现尚未达到精确天文历法级别，交节时刻和跨年边界需要权威历法基准测试。
-2. **`/api/qigua/time` 仍是实验性简化实现。** 当前使用公历年月日时数字求和取余，不等同于完整传统《梅花易数》年月日时起例。
-3. **部分旺衰、生克与暗动规则属于工程化简化。** 在形成权威决策表和足够基准案例前，不宣称完全覆盖所有传统流派规则。
-4. **测试覆盖仍在扩充。** 现有 CI 主要覆盖输入契约和静态数据完整性，下一阶段重点是历法、世应/纳甲、动变和关系计算的基准回归。
-
-公开这些限制是维护策略的一部分：宁可保留可复现的已知问题，也不以无法验证的“绝对准确”描述替代测试证据。传统规则的来源、冲突和项目约定如何处理，见 [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md)。
+1. **时间起卦仍是实验性实现。** `/api/qigua/time` 当前使用简化公历数字算法，不宣称已经实现有完整出处的传统年月日时起例；Issue #2 持续跟踪。
+2. **部分旺衰、生克与暗动规则仍属于工程化简化。** 在形成更多有出处的固定案例前，不做更强兼容性声明。
+3. **纳甲/参考数据的重复事实来源仍需继续收敛。** Issue #4 跟踪唯一可审计事实来源。
+4. **深层语义回归仍在扩展。** 4,096 条引擎路径已自动结构验证；Issue #5 继续补世应、纳甲、六亲、六神与动变关系的来源型预期值。
 
 ## 维护与贡献
 
-项目的持续维护信息公开记录在：
-
-- [`MAINTAINERS.md`](MAINTAINERS.md) — 维护者职责与规则变更决策方式
-- [`ROADMAP.md`](ROADMAP.md) — 可靠性、维护自动化与采用度路线图
-- [`CHANGELOG.md`](CHANGELOG.md) — 用户可见变更和兼容性记录
+- [`MAINTAINERS.md`](MAINTAINERS.md) — 维护职责与决策规则
+- [`ROADMAP.md`](ROADMAP.md) — 可靠性与互操作路线图
+- [`CHANGELOG.md`](CHANGELOG.md) — 兼容性/安全变更
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — 贡献与测试要求
-- [`SECURITY.md`](SECURITY.md) — 安全问题报告方式
+- [`SECURITY.md`](SECURITY.md) — 漏洞报告方式
 - [`docs/RELEASING.md`](docs/RELEASING.md) — 可重复发布流程
-- [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — PR review、issue triage、测试与发布自动化边界
-- [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md) — 规则来源、数据溯源与争议处理策略
+- [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — PR review、issue triage、测试和发布自动化边界
+- [`docs/VALIDATION.md`](docs/VALIDATION.md) — 回归与基准验证策略
 
-欢迎提交问题、真实使用报告、测试案例、传统规则出处、数据纠错和代码改进。特别欢迎：
+Codex 对该仓库最有价值的维护工作包括：PR 影响分析、Issue 复现、回归测试草拟、规则/数据一致性检查、文档与 API 一致性检查、依赖/安全审查和 Release 准备。任何 AI 产出仍需维护者审核，且 AI 输出本身不能作为传统规则正确性的证据。
 
-- 精确节气/干支历法基准与交界测试
-- 可引用来源的纳甲、世应、六亲和动变案例
-- API 边界、属性测试和回归测试
-- Docker/REST API 的真实集成和兼容性反馈
-- 前端错误处理与可访问性改进
-- 文档、英文说明与复现案例
-
-## 开源维护原则
-
-- 规则变化应附可复现案例或来源
-- 核心算法修改应同时增加测试
-- 已知限制公开记录，不隐藏失败案例
-- 安全默认优先，公网部署需显式配置跨域来源
-- AI 辅助代码或文档仍需由维护者审查并通过 CI
-- 依赖更新、CodeQL、安全报告和 release 由维护者持续处理
-- 使用量只记录真实公开指标，不刷 Star、Fork、下载或互动
+欢迎提交 bug、可核验规则出处、回归案例、文档改进、可访问性修复和真实集成。项目只记录真实公开采用度，不制造 Star、Fork、下载或互动。
 
 ## License
 
-本项目采用 [MIT License](LICENSE)。
+[MIT License](LICENSE)

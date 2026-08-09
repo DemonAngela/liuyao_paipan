@@ -1,5 +1,4 @@
 fastapi==0.141.1
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.52.1
 pydantic==2.13.4
-# 可选：用于干支历法
-# sxtwl
+lunar_python==1.4.8

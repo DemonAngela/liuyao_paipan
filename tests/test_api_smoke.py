@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from backend import __version__
 from backend.main import app
 
 
@@ -10,7 +11,7 @@ def test_openapi_is_available():
     response = client.get("/openapi.json")
     assert response.status_code == 200
     schema = response.json()
-    assert schema["info"]["version"] == "0.1.0"
+    assert schema["info"]["version"] == __version__
     assert "/api/qigua/specify" in schema["paths"]
     assert "/api/paipan/" in schema["paths"]
 
