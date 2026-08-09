@@ -1,4 +1,4 @@
-fastapi==0.115.6
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
 pydantic==2.13.4
 # 可选：用于干支历法
