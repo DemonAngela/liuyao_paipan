@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.head_commit.message == 'publish-v0.2.0'
+    if: github.event.head_commit.message == 'publish-v0.2.0-buildx'
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: v0.2.0
@@ -45,6 +45,9 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m pip install -e . --no-deps
           python -m pytest -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -86,7 +89,7 @@ jobs:
           ## Integration and maintenance
           - Added an installable Python package surface with `calculate_ganzhi` and `paipan`.
           - Updated Uvicorn and Node 24-compatible GitHub/Docker actions.
-          - Release images now include SBOM/provenance metadata plus a GitHub artifact attestation.
+          - Release images include SBOM/provenance metadata plus a GitHub artifact attestation.
           - Updated English/Chinese validation, source, roadmap, changelog, and release documentation.
 
           Main implementation: #19
