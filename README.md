@@ -74,7 +74,7 @@ LIUYAO_CORS_ORIGINS=http://localhost:5173,https://example.com
 | GET | `/api/guaci/{gua_id}` | 查询卦辞 |
 | GET | `/api/yaoci/{gua_id}/{yao_pos}` | 查询爻辞 |
 
-FastAPI 启动后可通过 `/docs` 查看交互式 API 文档。
+FastAPI 启动后可通过 `/docs` 查看交互式 API 文档；可复制的 curl/Python 集成样例见 [`docs/API_EXAMPLES.md`](docs/API_EXAMPLES.md)。
 
 ## 数据与算法
 
@@ -116,7 +116,7 @@ python -m pytest -q
 3. **部分旺衰、生克与暗动规则属于工程化简化。** 在形成权威决策表和足够基准案例前，不宣称完全覆盖所有传统流派规则。
 4. **测试覆盖仍在扩充。** 现有 CI 主要覆盖输入契约和静态数据完整性，下一阶段重点是历法、世应/纳甲、动变和关系计算的基准回归。
 
-公开这些限制是维护策略的一部分：宁可保留可复现的已知问题，也不以无法验证的“绝对准确”描述替代测试证据。
+公开这些限制是维护策略的一部分：宁可保留可复现的已知问题，也不以无法验证的“绝对准确”描述替代测试证据。传统规则的来源、冲突和项目约定如何处理，见 [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md)。
 
 ## 维护与贡献
 
@@ -129,12 +129,14 @@ python -m pytest -q
 - [`SECURITY.md`](SECURITY.md) — 安全问题报告方式
 - [`docs/RELEASING.md`](docs/RELEASING.md) — 可重复发布流程
 - [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — PR review、issue triage、测试与发布自动化边界
+- [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md) — 规则来源、数据溯源与争议处理策略
 
-欢迎提交问题、测试案例、传统规则出处、数据纠错和代码改进。特别欢迎：
+欢迎提交问题、真实使用报告、测试案例、传统规则出处、数据纠错和代码改进。特别欢迎：
 
 - 精确节气/干支历法基准与交界测试
 - 可引用来源的纳甲、世应、六亲和动变案例
 - API 边界、属性测试和回归测试
+- Docker/REST API 的真实集成和兼容性反馈
 - 前端错误处理与可访问性改进
 - 文档、英文说明与复现案例
 
@@ -146,6 +148,7 @@ python -m pytest -q
 - 安全默认优先，公网部署需显式配置跨域来源
 - AI 辅助代码或文档仍需由维护者审查并通过 CI
 - 依赖更新、CodeQL、安全报告和 release 由维护者持续处理
+- 使用量只记录真实公开指标，不刷 Star、Fork、下载或互动
 
 ## License
 

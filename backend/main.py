@@ -16,7 +16,7 @@ if project_root not in sys.path:
 
 from backend.api import cidian, paipan, qigua
 
-app = FastAPI(title="周易六爻排盘系统", version="1.0.0")
+app = FastAPI(title="周易六爻排盘系统", version="0.1.0")
 
 # 默认同源部署不需要 CORS。若确需跨域访问，使用逗号分隔的环境变量显式授权：
 # LIUYAO_CORS_ORIGINS=https://example.com,http://localhost:5173
