@@ -4,19 +4,21 @@
 [![CodeQL](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An open-source Liuyao (Six-Line I Ching) engine and web application built with Python, FastAPI, and vanilla JavaScript. The project turns traditional rule tables and calculations into inspectable software with a REST API, structured hexagram data, regression tests, and explicit documentation of unresolved rule ambiguities.
+A reproducible open-source implementation of Liuyao (Six-Line I Ching) rules as inspectable software. The repository provides a Python integration API, FastAPI REST API, browser UI, structured 64-hexagram data, regression tests, Docker images, and explicit rule-provenance documentation.
 
-> **Status: actively maintained, pre-stable.** The project is intended for study, research, software verification, and reproducible discussion of Liuyao rules. It is not presented as the only authoritative interpretation of the tradition and should not be used for medical, legal, financial, or other high-stakes decisions.
+> **Status: actively maintained, pre-1.0.** The project is for study, research, software verification, and reproducible discussion of traditional rules. It is not presented as the only authoritative interpretation and is not intended for medical, legal, financial, or other high-stakes decisions.
 
-## What it implements
+## Implemented surface
 
 - three-coin six-line generation using the 6/7/8/9 distribution;
 - manual and explicitly specified hexagrams;
-- an experimental time-divination endpoint;
-- Najia, Liuqin, Shi/Ying, Liushen, and Xunkong data;
-- moving lines, transformed hexagrams, and selected Sheng/Ke/Chong/He relationships;
-- reference data for 64 hexagrams and 384 line texts;
-- FastAPI REST endpoints and a browser UI.
+- Najia, Liuqin, Shi/Ying, Liushen, Xunkong, moving lines and transformed hexagrams;
+- selected Sheng/Ke/Chong/He relationship calculations;
+- 64 hexagrams and 384 line-text records;
+- reproducible Ganzhi year/month boundaries based on exact solar-term transition instants;
+- a small Python-facing integration API;
+- FastAPI REST endpoints and a browser UI;
+- an experimental time-divination endpoint kept outside the stable rule contract.
 
 ## Quick start
 
@@ -28,7 +30,24 @@ pip install -r requirements.txt
 python -m backend.main
 ```
 
-Open `http://127.0.0.1:8000` or inspect the API at `/docs`.
+Open `http://127.0.0.1:8000` or inspect `/docs`.
+
+### Python integration
+
+```python
+from backend import calculate_ganzhi, paipan
+
+ganzhi = calculate_ganzhi(1986, 5, 29, 0, 0)
+chart = paipan(
+    [1, 1, 1, 1, 1, 1],
+    year=2026,
+    month=4,
+    day=23,
+    hour=10,
+)
+```
+
+The supported integration surface and input conventions are documented in [`docs/PYTHON_API.md`](docs/PYTHON_API.md).
 
 ### Docker
 
@@ -37,65 +56,53 @@ docker build -t liuyao-paipan .
 docker run --rm -p 8000:8000 liuyao-paipan
 ```
 
-Copyable REST/Python examples are in [`docs/API_EXAMPLES.md`](docs/API_EXAMPLES.md).
+Tagged releases publish a GHCR image. The release workflow also generates SBOM/provenance metadata and a GitHub artifact attestation for the container digest.
 
-## Verification
+## Calendar validation
 
-Pull requests run:
+Ganzhi calculations pin `lunar_python==1.4.8` as a reproducible software reference. Year and month pillars use that reference implementation's exact solar-term transition instants. The project explicitly uses the same-civil-day (`Exact2` / sect-2) convention for `23:00-23:59`.
 
-- Python 3.10, 3.11, and 3.12 test jobs;
-- backend compilation checks;
-- pytest regression/data-integrity tests;
-- a Docker image build;
-- CodeQL security analysis.
+This is a documented deterministic project baseline, not a claim that one library or school is universally authoritative. See [`docs/VALIDATION.md`](docs/VALIDATION.md) and [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md).
 
-Dependabot is configured for Python and GitHub Actions dependencies.
+CI protects this behavior with:
 
-The current test suite validates request boundaries, the three-coin line mapping, and structural integrity of the 64-hexagram / 384-line datasets. Broader domain regression coverage is tracked publicly in issue #5.
+- fixed human-readable reference cases;
+- January cross-year checks for 2020-2029;
+- one-minute probes on both sides of all 12 monthly `jie` transitions for 2024-2026;
+- an explicit late-Zi-hour convention test;
+- a 3,653-day daily-noon comparison for 2020-2029 that must have zero year/month/day mismatches against the pinned baseline.
+
+## Broader verification
+
+Pull requests run Python 3.10/3.11/3.12 tests, backend compilation, package-install/import checks, Docker builds, and CodeQL. The suite also validates request boundaries, three-coin mapping, 64-hexagram/384-line data integrity, real HTTP routes, the public Python API, and all 4,096 base-hexagram/moving-line-mask combinations structurally.
+
+Dependabot maintains Python and GitHub Actions dependencies. Domain-rule changes require a reproducible case plus either a checkable source/reference or an explicit project convention.
 
 ## Known limitations
 
-The project intentionally documents unresolved correctness work instead of hiding it behind broad accuracy claims:
+1. **Time divination remains experimental.** `/api/qigua/time` currently uses a simplified Gregorian-number algorithm and is not claimed as a fully cited traditional year/month/day/hour method; issue #2 tracks that work.
+2. **Some strength and relationship rules are engineering simplifications.** They need more source-backed fixed cases before stronger compatibility claims are made.
+3. **Najia/reference-data duplication still needs consolidation.** Issue #4 tracks a single auditable source of truth.
+4. **Deeper semantic regression coverage is still expanding.** The 4,096 engine paths are now structurally exercised, while issue #5 tracks more source-backed expectations for Shi/Ying, Najia, Liuqin, Liushen and moving-line relationships.
 
-1. **Ganzhi and solar-term boundaries need a stronger reference suite.** Exact transition times and cross-year/month boundaries remain tracked in issue #1.
-2. **Time divination is experimental.** The current endpoint does not yet claim to implement a fully cited traditional year/month/day/hour method; issue #2 tracks the replacement and fixed reference cases.
-3. **Some strength and relationship rules are engineering simplifications.** They require more source-backed decision tables and regression cases before stronger compatibility claims are made.
-4. **Najia/reference-data duplication needs consolidation.** Issue #4 tracks a single auditable source of truth.
+## Maintenance evidence
 
-See [`CODE_REVIEW.md`](CODE_REVIEW.md) and [`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md) for details.
+The repository publishes its maintenance model rather than treating maintenance as invisible work:
 
-## Maintenance model
-
-The project treats maintenance as reviewable work rather than only feature development:
-
-- [`MAINTAINERS.md`](MAINTAINERS.md) — maintainer responsibilities and decision policy;
-- [`ROADMAP.md`](ROADMAP.md) — reliability, adoption, and maintenance roadmap;
-- [`CHANGELOG.md`](CHANGELOG.md) — user-visible compatibility and security changes;
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution and testing requirements;
+- [`MAINTAINERS.md`](MAINTAINERS.md) — ownership and decision policy;
+- [`ROADMAP.md`](ROADMAP.md) — reliability and interoperability work;
+- [`CHANGELOG.md`](CHANGELOG.md) — compatibility/security changes;
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution requirements;
 - [`SECURITY.md`](SECURITY.md) — vulnerability reporting;
-- [`docs/RELEASING.md`](docs/RELEASING.md) — release process;
-- [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — candidate PR-review, issue-triage, regression-test, documentation, and release automation workflows.
+- [`docs/RELEASING.md`](docs/RELEASING.md) — tested release process;
+- [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — PR review, triage, testing and release automation boundaries;
+- [`docs/VALIDATION.md`](docs/VALIDATION.md) — regression and reference-baseline policy.
 
-High-risk rule changes require a reproducible case and either a checkable source/reference or an explicitly documented project convention.
+Useful Codex maintainer work includes PR-impact review, issue reproduction, regression-test drafting, rule/data consistency checks, documentation/API consistency, dependency/security review, and release preparation. AI output remains subject to maintainer review and is never accepted by itself as evidence for a traditional-rule claim.
 
-## Where Codex can help
+## Contributing
 
-The repetitive part of maintaining this repository is review-heavy rather than purely generative. Useful maintainer automation includes:
-
-- summarizing pull-request impact and identifying missing tests;
-- triaging issues into reproducible cases and affected components;
-- drafting regression tests for confirmed bugs;
-- checking documentation against API/model changes;
-- preparing release notes and compatibility summaries;
-- assisting with security and dependency-review workflows.
-
-All generated changes remain subject to maintainer approval and CI. AI output is not accepted as evidence for a traditional-rule claim by itself.
-
-## Contributing and real-world usage
-
-Bug reports, rule-source corrections, regression cases, documentation improvements, and real integrations are welcome. Usage reports should include the version/commit, environment, deployment mode, and a non-sensitive reproducible example where possible.
-
-The project records only genuine public adoption signals. It does not manufacture stars, forks, downloads, or interactions.
+Bug reports, source-backed rule corrections, regression cases, documentation improvements, accessibility fixes, and real integrations are welcome. The project records only genuine public adoption signals and does not manufacture stars, forks, downloads, or interactions.
 
 ## License
 
