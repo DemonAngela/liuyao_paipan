@@ -25,7 +25,12 @@ def test_all_4096_hexagram_and_moving_line_combinations_are_structurally_valid()
             )
 
             assert result.ben_gua_name
-            assert result.bian_gua_name
+            if change_mask == 0:
+                # Existing engine contract: a static hexagram has no separate
+                # transformed-hexagram name.
+                assert result.bian_gua_name == ""
+            else:
+                assert result.bian_gua_name
             assert 1 <= result.shi_yao <= 6
             assert 1 <= result.ying_yao <= 6
             assert len(result.yao_list) == 6
