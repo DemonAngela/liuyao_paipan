@@ -1,6 +1,12 @@
 # 周易六爻排盘系统
 
+[![CI](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/test.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/test.yml)
+[![CodeQL](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 一个使用 Python / FastAPI 与原生 JavaScript 实现的开源六爻排盘 Web 应用。项目将六十四卦、纳甲、六亲、六神、旬空、生克冲合等规则编码为可检查、可测试的软件，并提供 REST API 与浏览器界面。
+
+**English summary:** An open-source Liuyao (Six-Line I Ching) engine and web/API implementation focused on reproducible rule encoding, inspectable data, regression tests, and explicit documentation of unresolved calendrical or traditional-rule ambiguities.
 
 > **项目状态：持续维护中。** 当前实现适合学习、研究与软件工程验证，不应被视为传统术数规则的唯一权威实现，也不应用于医疗、法律、金融等高风险决策。
 
@@ -21,8 +27,12 @@
 - HTML / CSS / Vanilla JavaScript
 - JSON 静态数据
 - pytest + GitHub Actions
+- Docker / GitHub Container Registry release workflow
+- CodeQL + Dependabot
 
 ## 快速开始
+
+### Python
 
 ```bash
 python -m venv .venv
@@ -33,6 +43,15 @@ python -m backend.main
 ```
 
 默认访问：`http://127.0.0.1:8000`
+
+### Docker
+
+```bash
+docker build -t liuyao-paipan .
+docker run --rm -p 8000:8000 liuyao-paipan
+```
+
+发布标签会通过 GitHub Actions 构建并发布版本化容器镜像；发布流程见 [`docs/RELEASING.md`](docs/RELEASING.md)。
 
 如需跨域访问 API，请显式配置允许来源：
 
@@ -69,7 +88,7 @@ backend/
 ├── models/              # Pydantic 请求/响应模型
 └── utils/               # 常量与辅助逻辑
 frontend/                # 浏览器界面
- tests/                  # 回归与数据完整性测试
+tests/                   # 回归与数据完整性测试
 ```
 
 CI 会至少验证：
@@ -79,6 +98,7 @@ CI 会至少验证：
 - `64gua_full.json` 包含 64 卦和 384 爻结构
 - `yaoci.json` 包含 64 × 6 条非空爻辞
 - 后端代码可以完成 Python 编译检查
+- Docker 镜像可以成功构建
 
 运行测试：
 
@@ -100,9 +120,17 @@ python -m pytest -q
 
 ## 维护与贡献
 
-欢迎提交问题、测试案例、传统规则出处、数据纠错和代码改进。贡献前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)。涉及安全问题请按 [`SECURITY.md`](SECURITY.md) 提交。
+项目的持续维护信息公开记录在：
 
-特别欢迎以下贡献：
+- [`MAINTAINERS.md`](MAINTAINERS.md) — 维护者职责与规则变更决策方式
+- [`ROADMAP.md`](ROADMAP.md) — 可靠性、维护自动化与采用度路线图
+- [`CHANGELOG.md`](CHANGELOG.md) — 用户可见变更和兼容性记录
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — 贡献与测试要求
+- [`SECURITY.md`](SECURITY.md) — 安全问题报告方式
+- [`docs/RELEASING.md`](docs/RELEASING.md) — 可重复发布流程
+- [`docs/MAINTAINER_AUTOMATION.md`](docs/MAINTAINER_AUTOMATION.md) — PR review、issue triage、测试与发布自动化边界
+
+欢迎提交问题、测试案例、传统规则出处、数据纠错和代码改进。特别欢迎：
 
 - 精确节气/干支历法基准与交界测试
 - 可引用来源的纳甲、世应、六亲和动变案例
@@ -117,6 +145,7 @@ python -m pytest -q
 - 已知限制公开记录，不隐藏失败案例
 - 安全默认优先，公网部署需显式配置跨域来源
 - AI 辅助代码或文档仍需由维护者审查并通过 CI
+- 依赖更新、CodeQL、安全报告和 release 由维护者持续处理
 
 ## License
 
