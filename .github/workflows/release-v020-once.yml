@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   tag:
-    if: github.event.head_commit.message == 'release: trigger v0.2.0'
+    if: github.event.head_commit.message == 'release-v0.2.0'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
