@@ -1,0 +1,40 @@
+name: Rule / data accuracy
+description: 提交六爻规则、历法、纳甲或静态数据的纠错与基准案例
+title: "[Rule] "
+labels: []
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: 当前行为
+      description: 给出当前程序输入与输出。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 建议的正确行为
+      description: 清楚写出应当如何计算或显示。
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 规则依据
+      description: 请提供可核验的出处、章节、公开资料或对照程序；避免仅以个人经验作为唯一依据。
+    validations:
+      required: true
+  - type: textarea
+    id: testcase
+    attributes:
+      label: 最小测试案例
+      description: 最好给出明确年月日时、六爻输入和预期结果，便于加入自动化回归测试。
+    validations:
+      required: true
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: 提交确认
+      options:
+        - label: 我理解不同传统流派可能存在差异，并愿意将争议规则记录为明确约定而非宣称唯一标准。
+          required: true
