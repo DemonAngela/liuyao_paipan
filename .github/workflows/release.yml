@@ -35,6 +35,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
+      - name: Set image repository
+        shell: bash
+        run: echo "IMAGE_REPO=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/liuyao-paipan" >> "$GITHUB_ENV"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -49,8 +53,6 @@ jobs:
 
       - name: Create tag for manual release
         if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if git rev-parse "$RELEASE_VERSION" >/dev/null 2>&1; then
             echo "Tag $RELEASE_VERSION already exists"
@@ -74,8 +76,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/liuyao-paipan:${{ env.RELEASE_VERSION }}
-            ghcr.io/${{ github.repository_owner }}/liuyao-paipan:latest
+            ${{ env.IMAGE_REPO }}:${{ env.RELEASE_VERSION }}
+            ${{ env.IMAGE_REPO }}:latest
 
       - name: Create or reuse GitHub release
         env:
