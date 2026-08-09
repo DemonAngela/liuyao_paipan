@@ -1,0 +1,38 @@
+name: One-time v0.2.0 Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-v020-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.event.head_commit.message == 'release: trigger v0.2.0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify release version
+        shell: bash
+        run: |
+          grep -F '__version__ = "0.2.0"' backend/__init__.py
+          grep -F 'version = "0.2.0"' pyproject.toml
+          if git rev-parse refs/tags/v0.2.0 >/dev/null 2>&1; then
+            echo "v0.2.0 already exists"
+            exit 1
+          fi
+
+      - name: Create v0.2.0 tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a v0.2.0 "$GITHUB_SHA" -m "v0.2.0"
+          git push origin v0.2.0
