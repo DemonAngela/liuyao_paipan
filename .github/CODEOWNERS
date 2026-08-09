@@ -1,0 +1,12 @@
+# Default review ownership
+* @DemonAngela
+
+# High-risk domain logic and generated reference data
+/backend/core/ @DemonAngela
+/backend/data/ @DemonAngela
+/backend/utils/ @DemonAngela
+/scripts/ @DemonAngela
+
+# Security and automation configuration
+/.github/ @DemonAngela
+/SECURITY.md @DemonAngela
