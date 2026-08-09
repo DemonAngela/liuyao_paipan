@@ -20,9 +20,21 @@ def test_python_paipan_api_returns_plain_data():
         hour=10,
     )
     assert result["ben_gua_name"] == "乾为天"
-    assert result["bian_gua_name"] == "乾为天"
+    assert result["bian_gua_name"] == ""
     assert len(result["yao_list"]) == 6
     assert result["gan_zhi"]["year"] == "丙午"
+
+
+def test_python_paipan_api_exposes_transformed_hexagram_when_a_line_moves():
+    result = paipan(
+        [1, 1, 1, 1, 1, 1],
+        changing_yao=[True, False, False, False, False, False],
+        year=2026,
+        month=4,
+        day=23,
+        hour=10,
+    )
+    assert result["bian_gua_name"]
 
 
 def test_python_paipan_api_validates_inputs():
