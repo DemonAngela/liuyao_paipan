@@ -84,12 +84,15 @@ def test_ganzhi_is_the_fifth_menu_and_supports_custom_time():
     for element_id in (
         'id="ganzhi-panel"',
         'id="ganzhi-time-input"',
+        'id="ganzhi-calendar"',
         'id="today-ganzhi"',
         'id="today-solar"',
         'id="today-lunar"',
     ):
         assert element_id in html
     assert 'id="btn-refresh-ganzhi"' not in html
+    assert 'class="ganzhi-picker-overlay"' in html
+    assert 'tabindex="-1"' in html
     assert html.index('id="today-lunar"') < html.index('id="ganzhi-time-input"')
     assert 'type="datetime-local"' in html
     assert "/api/ganzhi/today" in qigua
@@ -97,3 +100,5 @@ def test_ganzhi_is_the_fifth_menu_and_supports_custom_time():
     assert "readLocalDateTime('ganzhi-time-input')" in qigua
     assert "getElementById('ganzhi-time-input').addEventListener(" in qigua
     assert "'change'" in qigua
+    assert "initGanzhiCalendar" in qigua
+    assert "'mousedown'" in qigua

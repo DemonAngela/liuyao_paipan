@@ -96,8 +96,16 @@
                 </dl>
                 <div class="datetime-inputs">
                     <label for="ganzhi-time-input">选择时间（留空为今日）：</label>
-                    <input type="datetime-local" id="ganzhi-time-input"
-                           class="datetime-input">
+                    <div class="ganzhi-picker-wrap">
+                        <input type="datetime-local" id="ganzhi-time-input"
+                               class="datetime-input" autocomplete="off"
+                               tabindex="-1">
+                        <button type="button" class="ganzhi-picker-overlay"
+                                aria-haspopup="dialog" aria-expanded="false"
+                                aria-label="打开日期选择"></button>
+                        <div id="ganzhi-calendar" class="ganzhi-calendar hidden"
+                             role="dialog" aria-label="选择查询日期"></div>
+                    </div>
                 </div>
             </div>
 

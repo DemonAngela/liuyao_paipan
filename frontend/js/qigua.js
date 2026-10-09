@@ -77,6 +77,8 @@ function initQiguaUI() {
         'change',
         loadGanzhiSummary
     );
+
+    initGanzhiCalendar();
     document.getElementById('specify-yao-list').addEventListener(
         'click',
         handleSpecifySelection
@@ -167,6 +169,255 @@ async function loadGanzhiSummary() {
             document.getElementById('today-lunar').textContent = data.lunar;
         }
     );
+}
+
+function initGanzhiCalendar() {
+    const input = document.getElementById('ganzhi-time-input');
+    const calendar = document.getElementById('ganzhi-calendar');
+    const wrap = input.closest('.ganzhi-picker-wrap');
+    const overlay = wrap.querySelector('.ganzhi-picker-overlay');
+    const pad = value => String(value).padStart(2, '0');
+    const formatDate = (year, month, day) =>
+        `${year}-${pad(month + 1)}-${pad(day)}`;
+    const now = new Date();
+    let viewYear = now.getFullYear();
+    let viewMonth = now.getMonth();
+    let selectedDate = null;
+
+    function parseInputDate() {
+        if (!input.value) {
+            return null;
+        }
+        const parsed = new Date(input.value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function applyInputValue(value) {
+        input.value = value;
+        input.dispatchEvent(new Event('change'));
+    }
+
+    function currentDateKey() {
+        if (selectedDate) {
+            return selectedDate;
+        }
+        const parsed = parseInputDate();
+        if (parsed) {
+            return formatDate(
+                parsed.getFullYear(), parsed.getMonth(), parsed.getDate()
+            );
+        }
+        return formatDate(
+            now.getFullYear(), now.getMonth(), now.getDate()
+        );
+    }
+
+    function applySelection() {
+        const timePart = document.getElementById('ganzhi-time-part');
+        applyInputValue(`${currentDateKey()}T${timePart?.value || '00:00'}`);
+    }
+
+    function buildHeader() {
+        const header = document.createElement('div');
+        header.className = 'ganzhi-cal-header';
+        const title = document.createElement('span');
+        title.textContent = `${viewYear}年${viewMonth + 1}月`;
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.id = 'ganzhi-cal-prev';
+        prevBtn.className = 'ganzhi-cal-nav';
+        prevBtn.textContent = '‹';
+        prevBtn.setAttribute('aria-label', '上一月');
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.id = 'ganzhi-cal-next';
+        nextBtn.className = 'ganzhi-cal-nav';
+        nextBtn.textContent = '›';
+        nextBtn.setAttribute('aria-label', '下一月');
+        header.append(prevBtn, title, nextBtn);
+        return header;
+    }
+
+    function buildGrid() {
+        const today = new Date();
+        const todayKey = formatDate(
+            today.getFullYear(), today.getMonth(), today.getDate()
+        );
+        const selectedKey = currentDateKey();
+        const grid = document.createElement('div');
+        grid.className = 'ganzhi-cal-grid';
+        ['一', '二', '三', '四', '五', '六', '日'].forEach(name => {
+            const cell = document.createElement('span');
+            cell.className = 'ganzhi-cal-weekday';
+            cell.textContent = name;
+            grid.appendChild(cell);
+        });
+
+        const leadDays = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7;
+        const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+        const cells = [];
+        for (let i = leadDays; i > 0; i -= 1) {
+            cells.push({ day: prevMonthDays - i + 1, shift: -1 });
+        }
+        for (
+            let day = 1;
+            day <= new Date(viewYear, viewMonth + 1, 0).getDate();
+            day += 1
+        ) {
+            cells.push({ day, shift: 0 });
+        }
+        let trailing = 1;
+        while (cells.length < 42) {
+            cells.push({ day: trailing, shift: 1 });
+            trailing += 1;
+        }
+
+        cells.forEach(cell => {
+            const cellDate = new Date(
+                viewYear, viewMonth + cell.shift, cell.day
+            );
+            const key = formatDate(
+                cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate()
+            );
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ganzhi-cal-day';
+            btn.textContent = cell.day;
+            btn.dataset.date = key;
+            btn.setAttribute('aria-label', key);
+            if (cell.shift !== 0) {
+                btn.classList.add('is-outside');
+            }
+            if (key === todayKey) {
+                btn.classList.add('is-today');
+            }
+            if (key === selectedKey) {
+                btn.classList.add('is-selected');
+                btn.setAttribute('aria-pressed', 'true');
+            }
+            grid.appendChild(btn);
+        });
+        return grid;
+    }
+
+    function buildFooter() {
+        const footer = document.createElement('div');
+        footer.className = 'ganzhi-cal-footer';
+        const timePart = document.createElement('input');
+        timePart.type = 'time';
+        timePart.id = 'ganzhi-time-part';
+        timePart.className = 'ganzhi-cal-time';
+        timePart.setAttribute('aria-label', '选择时刻');
+        const parsed = parseInputDate();
+        timePart.value = parsed
+            ? `${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+            : '00:00';
+        const todayBtn = document.createElement('button');
+        todayBtn.type = 'button';
+        todayBtn.id = 'ganzhi-cal-today';
+        todayBtn.className = 'secondary-btn ganzhi-cal-action';
+        todayBtn.textContent = '今天';
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.id = 'ganzhi-cal-clear';
+        clearBtn.className = 'secondary-btn ganzhi-cal-action';
+        clearBtn.textContent = '清空';
+        footer.append(timePart, todayBtn, clearBtn);
+        return footer;
+    }
+
+    function renderCalendar() {
+        calendar.replaceChildren(buildHeader(), buildGrid(), buildFooter());
+    }
+
+    function shiftMonth(delta) {
+        const next = new Date(viewYear, viewMonth + delta, 1);
+        viewYear = next.getFullYear();
+        viewMonth = next.getMonth();
+        renderCalendar();
+    }
+
+    function openCalendar() {
+        const base = parseInputDate() || new Date();
+        viewYear = base.getFullYear();
+        viewMonth = base.getMonth();
+        renderCalendar();
+        calendar.classList.remove('hidden');
+        overlay.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeCalendar() {
+        calendar.classList.add('hidden');
+        overlay.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleCalendar() {
+        if (calendar.classList.contains('hidden')) {
+            openCalendar();
+        } else {
+            closeCalendar();
+        }
+    }
+
+    calendar.addEventListener('click', event => {
+        const dayBtn = event.target.closest('.ganzhi-cal-day');
+        if (dayBtn) {
+            selectedDate = dayBtn.dataset.date;
+            applySelection();
+            renderCalendar();
+            return;
+        }
+        if (event.target.id === 'ganzhi-cal-prev') {
+            shiftMonth(-1);
+            return;
+        }
+        if (event.target.id === 'ganzhi-cal-next') {
+            shiftMonth(1);
+            return;
+        }
+        if (event.target.id === 'ganzhi-cal-today') {
+            const current = new Date();
+            selectedDate = formatDate(
+                current.getFullYear(), current.getMonth(), current.getDate()
+            );
+            viewYear = current.getFullYear();
+            viewMonth = current.getMonth();
+            applyInputValue(
+                `${selectedDate}T${pad(current.getHours())}:${
+                    pad(current.getMinutes())
+                }`
+            );
+            renderCalendar();
+            return;
+        }
+        if (event.target.id === 'ganzhi-cal-clear') {
+            selectedDate = null;
+            applyInputValue('');
+            renderCalendar();
+        }
+    });
+
+    calendar.addEventListener('change', event => {
+        if (event.target.id === 'ganzhi-time-part') {
+            applySelection();
+        }
+    });
+
+    overlay.addEventListener('click', toggleCalendar);
+
+    document.addEventListener('mousedown', event => {
+        if (!calendar.classList.contains('hidden')
+            && !wrap.contains(event.target)) {
+            closeCalendar();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape'
+            && !calendar.classList.contains('hidden')) {
+            closeCalendar();
+        }
+    });
 }
 
 function buildSpecifyPanel() {
