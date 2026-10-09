@@ -11,11 +11,13 @@ function setStatus(message = '', type = 'info') {
 }
 
 async function runAction(button, loadingMessage, successMessage, action) {
-    if (button.disabled) {
+    if (button?.disabled) {
         return;
     }
-    button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
+    if (button) {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+    }
     setStatus(loadingMessage, 'loading');
     try {
         const outcome = await action();
@@ -27,8 +29,10 @@ async function runAction(button, loadingMessage, successMessage, action) {
     } catch (error) {
         setStatus(error.message || '操作失败，请稍后重试', 'error');
     } finally {
-        button.disabled = false;
-        button.removeAttribute('aria-busy');
+        if (button) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
     }
 }
 
@@ -69,8 +73,8 @@ function initQiguaUI() {
         'click',
         submitSpecify
     );
-    document.getElementById('btn-refresh-ganzhi').addEventListener(
-        'click',
+    document.getElementById('ganzhi-time-input').addEventListener(
+        'change',
         loadGanzhiSummary
     );
     document.getElementById('specify-yao-list').addEventListener(
@@ -145,11 +149,10 @@ async function timeQigua() {
 }
 
 async function loadGanzhiSummary() {
-    const button = document.getElementById('btn-refresh-ganzhi');
     const input = document.getElementById('ganzhi-time-input');
     const hasCustomTime = Boolean(input.value);
     await runAction(
-        button,
+        null,
         hasCustomTime ? '正在查询所选时间…' : '正在查询今日干支…',
         hasCustomTime ? '所选时间历法已更新' : '今日历法已更新',
         async () => {

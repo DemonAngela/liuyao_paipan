@@ -80,11 +80,6 @@
             <div id="ganzhi-panel" class="ganzhi-panel hidden"
                  aria-labelledby="ganzhi-panel-title">
                 <h3 id="ganzhi-panel-title">天干地支查询</h3>
-                <div class="datetime-inputs">
-                    <label for="ganzhi-time-input">查询时间（留空为今日）：</label>
-                    <input type="datetime-local" id="ganzhi-time-input"
-                           class="datetime-input">
-                </div>
                 <dl class="ganzhi-summary">
                     <div class="ganzhi-item">
                         <dt>干支</dt>
@@ -99,8 +94,11 @@
                         <dd id="today-lunar">—</dd>
                     </div>
                 </dl>
-                <button type="button" id="btn-refresh-ganzhi"
-                        class="primary-btn">查询</button>
+                <div class="datetime-inputs">
+                    <label for="ganzhi-time-input">选择时间（留空为今日）：</label>
+                    <input type="datetime-local" id="ganzhi-time-input"
+                           class="datetime-input">
+                </div>
             </div>
 
             <div id="app-status" class="app-status info" role="status"

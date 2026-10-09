@@ -89,13 +89,12 @@ h1 {
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 14px;
+    margin-top: 14px;
 }
 
 .ganzhi-summary {
     display: grid;
     gap: 10px;
-    margin-bottom: 16px;
 }
 
 .ganzhi-item {
