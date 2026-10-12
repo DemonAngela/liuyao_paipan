@@ -1,0 +1,26 @@
+[
+  {
+    "id": "lunar-python-readme-1986-05-29",
+    "source": "6tail/lunar-python v1.4.8 README example",
+    "datetime": "1986-05-29T00:00:00",
+    "expected": {
+      "year": "丙寅",
+      "month": "癸巳",
+      "day": "癸酉",
+      "hour": "壬子"
+    },
+    "notes": "Year/month/day are published in the upstream README example; the hour stem follows the documented five-rat rule from the same day stem."
+  },
+  {
+    "id": "project-regression-2026-04-23",
+    "source": "Project regression case; calendar boundary semantics pinned to lunar_python v1.4.8",
+    "datetime": "2026-04-23T10:00:00",
+    "expected": {
+      "year": "丙午",
+      "month": "壬辰",
+      "day": "丁卯",
+      "hour": "乙巳"
+    },
+    "notes": "Representative non-boundary case used by the project before the calendar-baseline migration."
+  }
+]

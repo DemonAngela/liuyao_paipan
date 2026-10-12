@@ -1,6 +1,12 @@
 # 六爻排盘
 
-基于 FastAPI 与原生 HTML/CSS/JavaScript 的本地六爻起卦、排盘和辞典应用。
+[![CI](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/ci.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml/badge.svg)](https://github.com/DemonAngela/liuyao_paipan/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+基于 FastAPI 与原生 HTML/CSS/JavaScript 的本地六爻起卦、排盘和辞典应用，把六爻传统规则编码为可检查、可测试、可复现的软件。
+
+> **状态：持续维护、pre-1.0。** 项目用于学习、研究与可复现的规则讨论，不宣称是传统术数的唯一权威解释，也不应用于医疗、法律、金融等高风险决策。
 
 ## 功能
 
@@ -19,6 +25,7 @@
 - 三枚铜钱四种爻象的概率为 `1/8、3/8、3/8、1/8`。
 - 生克、合冲等内容是本项目的展示筛选规则；六爻流派并无唯一统一口径，
   本项目不将其宣称为通行断卦标准。
+- 时间起卦仍是实验性实现，不宣称已经实现有完整出处的传统年月日时起例。
 
 ## 环境
 
@@ -41,6 +48,33 @@ py -3.13 -m venv venv
 
 `requirements*.lock` 固定全部传递依赖并校验哈希；修改
 `requirements*.txt` 后，应使用其中固定的 `pip-tools` 重新生成锁文件。
+
+### Python 集成
+
+```python
+from backend import calculate_ganzhi, paipan
+
+ganzhi = calculate_ganzhi(1986, 5, 29, 0, 0)
+chart = paipan(
+    [1, 1, 1, 1, 1, 1],
+    year=2026,
+    month=4,
+    day=23,
+    hour=10,
+)
+```
+
+稳定集成入口与输入约定见 [`docs/PYTHON_API.md`](docs/PYTHON_API.md)。
+
+### Docker
+
+```bash
+docker build -t liuyao-paipan .
+docker run --rm -p 8000:8000 liuyao-paipan
+```
+
+版本发布会生成 GHCR 镜像；Release workflow 同时生成容器 SBOM、provenance
+与针对镜像 digest 的 GitHub artifact attestation。
 
 ## 启动与停止
 
@@ -107,6 +141,14 @@ CORS 默认关闭并采用同源访问；白名单禁止 `*`。若需局域网�
 交互式 API 文档位于 `/docs`。输入模型使用严格类型和日期范围校验，无效
 请求返回稳定的 `4xx`，服务端异常不会向客户端泄露内部细节。
 
+## 干支历法基准
+
+生产代码固定使用 `lunar_python==1.4.8` 作为可复现的软件基准。年柱与月柱
+使用该基准计算的真实节气交接时刻；项目明确采用晚子时 `23:00-23:59`
+不提前换日的 `sect=2` 约定。规则来源与验证范围见
+[`docs/VALIDATION.md`](docs/VALIDATION.md) 与
+[`docs/SOURCES_AND_SCOPE.md`](docs/SOURCES_AND_SCOPE.md)。
+
 ## 开发与验收
 
 ```powershell
@@ -126,8 +168,25 @@ Get-ChildItem .\frontend\js\*.js | ForEach-Object { node --check $_.FullName }
 边界见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)，原始审查及修复状态
 见 [`CODE_REVIEW.md`](CODE_REVIEW.md)。
 
+Pull Request 还会运行多版本 Python 测试、安装后公共 API 检查、Docker
+镜像构建与 CodeQL 安全分析。
+
 ## 发布
 
 向远程推送 `v*` 标签会触发发布工作流；工作流先重复完整验收，再创建带
-SHA-256 校验文件的源码压缩包和 GitHub Release。发布版本应与
-`backend/main.py` 中的应用版本一致。
+SHA-256 校验文件的源码压缩包、GHCR 容器镜像与构建证明，并创建
+GitHub Release。发布版本应与 `backend/main.py` 中的应用版本一致。
+
+## 维护与贡献
+
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — 贡献与测试要求
+- [`MAINTAINERS.md`](MAINTAINERS.md) — 维护职责与决策规则
+- [`ROADMAP.md`](ROADMAP.md) — 可靠性与互操作路线图
+- [`CHANGELOG.md`](CHANGELOG.md) — 兼容性/安全变更
+- [`SECURITY.md`](SECURITY.md) — 漏洞报告方式
+- [`docs/RELEASING.md`](docs/RELEASING.md) — 可重复发布流程
+- [`docs/VALIDATION.md`](docs/VALIDATION.md) — 回归与基准验证策略
+
+## License
+
+[MIT License](LICENSE)

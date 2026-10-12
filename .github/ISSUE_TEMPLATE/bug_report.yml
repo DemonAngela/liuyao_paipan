@@ -1,0 +1,40 @@
+name: Bug report
+description: 报告可复现的软件错误
+title: "[Bug] "
+labels: []
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题描述
+      description: 说明实际发生了什么。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请给出最小可复现输入、API 请求或页面操作。
+      placeholder: |
+        1. 使用起卦方式...
+        2. 输入...
+        3. 观察到...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+      description: 说明你认为正确的结果；若涉及传统规则，请尽量附依据。
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: Python 3.11 / Windows 11 / Chrome ...
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 依据或对照
+      description: 可填写书籍章节、权威案例、其他实现或截图。

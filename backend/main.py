@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import __version__
 from .api import cidian, ganzhi, paipan, qigua
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -44,7 +45,7 @@ def create_app(
 
     application = FastAPI(
         title="周易六爻排盘系统",
-        version="1.2.0",
+        version=__version__,
     )
     if origins:
         application.add_middleware(

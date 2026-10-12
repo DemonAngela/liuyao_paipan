@@ -1,3 +1,43 @@
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liuyao-paipan"
+version = "0.2.0"
+description = "Reproducible open-source Liuyao (Six-Line I Ching) engine and API"
+readme = "README_EN.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Demon Angela" }]
+keywords = ["liuyao", "i-ching", "yijing", "chinese-calendar", "fastapi"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "fastapi==0.115.6",
+  "uvicorn==0.34.0",
+  "pydantic==2.10.3",
+  "lunar-python==1.4.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/DemonAngela/liuyao_paipan"
+Repository = "https://github.com/DemonAngela/liuyao_paipan"
+Issues = "https://github.com/DemonAngela/liuyao_paipan/issues"
+Changelog = "https://github.com/DemonAngela/liuyao_paipan/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+
+[tool.setuptools.package-data]
+"backend.data" = ["*.json"]
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
@@ -9,4 +49,3 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
-
