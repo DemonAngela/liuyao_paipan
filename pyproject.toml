@@ -20,7 +20,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "fastapi==0.115.6",
+  "fastapi==0.143.1",
   "uvicorn==0.34.0",
   "pydantic==2.10.3",
   "lunar-python==1.4.8",
